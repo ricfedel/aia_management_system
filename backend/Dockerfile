@@ -6,7 +6,6 @@ WORKDIR /app
 # Copia solo il pom.xml prima del codice sorgente per sfruttare il layer cache
 # di Docker: le dipendenze Maven vengono riscaricate solo se pom.xml cambia.
 COPY pom.xml .
-COPY .maven /root/.m2/wrapper
 
 # Scarica le dipendenze offline (layer separato per cache)
 RUN --mount=type=cache,target=/root/.m2 \
