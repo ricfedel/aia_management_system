@@ -17,7 +17,7 @@ jobs:
   # ── Job 1: Build e push immagini Docker ─────────────────────────────────────
   build:
     name: Build Docker images
-    runs-on: ubuntu-latest
+    runs-on: self-hosted   # build nativo ARM64 su Hetzner (niente emulazione QEMU)
     permissions:
       contents: read
       packages: write   # necessario per push su ghcr.io
@@ -43,7 +43,7 @@ jobs:
           context: ./backend
           file: ./backend/Dockerfile
           push: true
-          platforms: linux/arm64   # server Hetzner ARM64 (CAX)
+
           tags: |
             ${{ env.IMAGE_BACKEND }}:latest
             ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
@@ -58,7 +58,7 @@ jobs:
           context: .
           file: ./nginx/Dockerfile
           push: true
-          platforms: linux/arm64   # server Hetzner ARM64 (CAX)
+
           tags: |
             ${{ env.IMAGE_NGINX }}:latest
             ${{ env.IMAGE_NGINX }}:${{ github.sha }}
