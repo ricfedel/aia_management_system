@@ -1,6 +1,26 @@
-# Variabili d'ambiente (mai su git)
-.env
-
 # JDK/Maven locali
 .jdk21/
 .maven/
+
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Backend
+backend/target/
+backend/uploads/
+
+# Ambiente
+.env
+*.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+EOF

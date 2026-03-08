@@ -43,6 +43,7 @@ jobs:
           context: ./backend
           dockerfile: ./backend/Dockerfile
           push: true
+          platforms: linux/arm64   # server Hetzner ARM64 (CAX)
           tags: |
             ${{ env.IMAGE_BACKEND }}:latest
             ${{ env.IMAGE_BACKEND }}:${{ github.sha }}
@@ -57,6 +58,7 @@ jobs:
           context: .
           dockerfile: ./nginx/Dockerfile
           push: true
+          platforms: linux/arm64   # server Hetzner ARM64 (CAX)
           tags: |
             ${{ env.IMAGE_NGINX }}:latest
             ${{ env.IMAGE_NGINX }}:${{ github.sha }}
