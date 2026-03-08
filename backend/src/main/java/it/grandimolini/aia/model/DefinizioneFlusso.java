@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
@@ -9,10 +12,27 @@ import java.time.LocalDateTime;
  * Contiene l'XML BPMN 2.0 che viene interpretato a runtime dal BpmnParserService
  * per costruire la sequenza di task di ogni istanza di processo.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "definizioni_flusso")
 public class DefinizioneFlusso {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof DefinizioneFlusso)) return false;
+        DefinizioneFlusso that = (DefinizioneFlusso) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

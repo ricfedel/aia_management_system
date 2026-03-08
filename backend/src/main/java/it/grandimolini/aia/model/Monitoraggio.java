@@ -1,17 +1,37 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 import static jakarta.persistence.FetchType.LAZY;
 
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"datiAmbientali", "parametri"})
 @Entity
 @Table(name = "monitoraggi")
 public class Monitoraggio {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Monitoraggio)) return false;
+        Monitoraggio that = (Monitoraggio) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

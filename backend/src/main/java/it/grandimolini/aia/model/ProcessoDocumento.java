@@ -1,9 +1,12 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 
 /**
@@ -11,10 +14,27 @@ import java.util.List;
  * Modella il ciclo di vita di un documento dall'arrivo alla creazione
  * delle entità operative (scadenze, prescrizioni) nel sistema AIA.
  */
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"tasks"})
 @Entity
 @Table(name = "processi_documento")
 public class ProcessoDocumento {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ProcessoDocumento)) return false;
+        ProcessoDocumento that = (ProcessoDocumento) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

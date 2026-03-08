@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
@@ -18,10 +21,27 @@ import java.time.LocalDateTime;
  * - Rifiuti su grano: 0.003 kg/t
  * - % rifiuti avviati a recupero: 98.5 %
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "indicatori_performance")
 public class IndicatorePerformance {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof IndicatorePerformance)) return false;
+        IndicatorePerformance that = (IndicatorePerformance) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

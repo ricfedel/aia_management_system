@@ -1,17 +1,37 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
  * Singola voce di produzione/consumo all'interno di un RegistroMensile.
  * Copre materie prime, consumi idrici (per contatore), consumi energetici.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "voci_produzione")
 public class VoceProduzione {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof VoceProduzione)) return false;
+        VoceProduzione that = (VoceProduzione) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

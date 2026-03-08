@@ -1,11 +1,14 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 
 /**
@@ -17,10 +20,27 @@ import java.util.List;
  *
  * Laboratori tipici: Chelab S.r.l. (LAB N° 0051 L), Agrolab Italia (LAB N° 0147 L).
  */
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"righe"})
 @Entity
 @Table(name = "rapporti_prova")
 public class RapportoProva {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RapportoProva)) return false;
+        RapportoProva that = (RapportoProva) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

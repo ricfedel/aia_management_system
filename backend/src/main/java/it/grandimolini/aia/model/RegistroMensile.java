@@ -1,16 +1,21 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 
 /**
  * Registro mensile di produzione e consumi per uno stabilimento.
  * Ogni record copre un singolo mese (anno + mese) per un singolo stabilimento.
  */
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"voci"})
 @Entity
 @Table(
     name = "registri_mensili",
@@ -20,6 +25,21 @@ import java.util.List;
     )
 )
 public class RegistroMensile {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RegistroMensile)) return false;
+        RegistroMensile that = (RegistroMensile) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

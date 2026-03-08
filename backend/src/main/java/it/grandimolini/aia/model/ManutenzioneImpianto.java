@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -14,10 +17,27 @@ import java.time.LocalDateTime;
  * Esempi: filtri a maniche (E66, E91-E96), impianto depurazione SF1,
  * impianto Imhoff, contatori, deprimometri.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "manutenzioni_impianto")
 public class ManutenzioneImpianto {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ManutenzioneImpianto)) return false;
+        ManutenzioneImpianto that = (ManutenzioneImpianto) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

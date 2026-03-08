@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
@@ -15,13 +18,30 @@ import java.time.LocalDateTime;
  * di valutare automaticamente la conformità delle misure acustiche rispetto
  * ai limiti di zona applicabili a quella specifica posizione.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "zone_acustiche",
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_zona_acustica_stabilimento_posizione",
                 columnNames = {"stabilimento_id", "posizione"}))
 public class ZonaAcustica {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ZonaAcustica)) return false;
+        ZonaAcustica that = (ZonaAcustica) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

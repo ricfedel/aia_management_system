@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
@@ -19,13 +22,30 @@ import java.time.LocalDateTime;
  *   - Comune Cerea (CC) → ricevuta di consegna
  * ognuno con il proprio stato e file ricevuta.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "comunicazioni_destinatari",
         uniqueConstraints = @UniqueConstraint(
                 name = "uq_comunicazione_destinatario",
                 columnNames = {"comunicazione_id", "recapito_ente_id"}))
 public class ComunicazioneDestinatario {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ComunicazioneDestinatario)) return false;
+        ComunicazioneDestinatario that = (ComunicazioneDestinatario) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

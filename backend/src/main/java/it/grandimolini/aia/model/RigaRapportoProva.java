@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDate;
 
 /**
@@ -10,10 +13,27 @@ import java.time.LocalDate;
  * Corrisponde a un parametro misurato (es. pH, BOD5, COD, SST, idrocarburi totali…)
  * con il proprio valore, incertezza, LOQ, limite normativo e stato di conformità.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "righe_rapporto_prova")
 public class RigaRapportoProva {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RigaRapportoProva)) return false;
+        RigaRapportoProva that = (RigaRapportoProva) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
@@ -9,11 +12,28 @@ import java.time.LocalDateTime;
  * Dati provenienti dalla Tabella A "Quadro riassuntivo delle emissioni in atmosfera"
  * allegata al provvedimento di AIA di ciascun stabilimento.
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "anagrafica_camini",
        uniqueConstraints = @UniqueConstraint(columnNames = {"stabilimento_id", "sigla"}))
 public class AnagraficaCamino {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof AnagraficaCamino)) return false;
+        AnagraficaCamino that = (AnagraficaCamino) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

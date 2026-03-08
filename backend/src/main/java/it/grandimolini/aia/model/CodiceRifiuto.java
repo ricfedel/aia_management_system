@@ -1,19 +1,39 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Objects;
 import java.util.List;
 
 /**
  * Anagrafica dei codici CER (Catalogo Europeo Rifiuti) usati da uno stabilimento.
  * Ogni stabilimento ha il proprio catalogo di rifiuti prodotti/gestiti.
  */
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"movimenti"})
 @Entity
 @Table(name = "codici_rifiuto")
 public class CodiceRifiuto {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof CodiceRifiuto)) return false;
+        CodiceRifiuto that = (CodiceRifiuto) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

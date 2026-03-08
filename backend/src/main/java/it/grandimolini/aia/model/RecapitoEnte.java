@@ -1,7 +1,10 @@
 package it.grandimolini.aia.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import java.util.Objects;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import java.time.LocalDateTime;
 
 /**
@@ -18,10 +21,27 @@ import java.time.LocalDateTime;
  * - colaboratorio@grandimolini.it       → (CC interno, email ordinaria)
  * - mpasetto@grandimolini.it            → (CC interno, email ordinaria)
  */
-@Data
+@Getter
+@Setter
+@ToString
 @Entity
 @Table(name = "recapiti_ente")
 public class RecapitoEnte {
+    // equals/hashCode basati solo sull'id: evita LazyInitializationException
+    // quando le entità vengono usate in HashSet fuori dalla sessione Hibernate.
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RecapitoEnte)) return false;
+        RecapitoEnte that = (RecapitoEnte) o;
+        return Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
