@@ -49,10 +49,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**", "/h2-console/**").permitAll()
                 .anyRequest().authenticated()
             )
-            // LocalhostInternalAuthFilter deve precedere JwtAuthenticationFilter:
-            // imposta auth sintetica per chiamate da 127.0.0.1/::1 (es. BPM self-call)
-            // senza richiedere un token JWT.
-            .addFilterBefore(localhostInternalAuthFilter, JwtAuthenticationFilter.class)
+            // Entrambi i filtri custom vanno prima di UsernamePasswordAuthenticationFilter.
+            // L'ordine di inserimento garantisce: localhost → jwt → UPAF.
+            // (Spring Security 7 non accetta filtri custom come riferimento in addFilterBefore)
+            .addFilterBefore(localhostInternalAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
