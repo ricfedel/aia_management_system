@@ -1,0 +1,548 @@
+<div class="comunicazioni-container">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <h1>📬 Comunicazioni con Enti</h1>
+    @if (isResponsabileOrAdmin()) {
+      <button class="btn-primary" (click)="openNew()" [disabled]="!filterStabilimento()">
+        + Nuova comunicazione
+      </button>
+    }
+  </div>
+
+  <!-- ── Errori ─────────────────────────────────────────────────────────── -->
+  @if (errorMsg()) {
+    <div class="alert-error">
+      {{ errorMsg() }}
+      <button class="btn-close-alert" (click)="errorMsg.set(null)">✕</button>
+    </div>
+  }
+
+  <!-- ── Selezione stabilimento ──────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <select class="filter-select"
+            [ngModel]="filterStabilimento()"
+            (ngModelChange)="filterStabilimento.set($event); onStabilimentoChange()">
+      <option [ngValue]="null">— Seleziona stabilimento —</option>
+      @for (s of stabilimenti(); track s.id) {
+        <option [ngValue]="s.id">{{ s.nome }}</option>
+      }
+    </select>
+  </div>
+
+  @if (filterStabilimento()) {
+
+    <!-- ── KPI Strip ───────────────────────────────────────────────────── -->
+    <div class="kpi-strip">
+      <div class="kpi-card kpi-bozza">
+        <span class="kpi-label">📝 Bozze</span>
+        <span class="kpi-value">{{ riepilogo().BOZZA ?? 0 }}</span>
+      </div>
+      <div class="kpi-card kpi-inviata">
+        <span class="kpi-label">📤 Inviate</span>
+        <span class="kpi-value">{{ riepilogo().INVIATA ?? 0 }}</span>
+      </div>
+      <div class="kpi-card kpi-consegnata">
+        <span class="kpi-label">📬 Consegnate PEC</span>
+        <span class="kpi-value">{{ riepilogo().CONSEGNATA_PEC ?? 0 }}</span>
+      </div>
+      <div class="kpi-card kpi-risposta">
+        <span class="kpi-label">📥 Risposta ricevuta</span>
+        <span class="kpi-value">{{ riepilogo().RISPOSTA_RICEVUTA ?? 0 }}</span>
+      </div>
+      <div class="kpi-card kpi-attesa">
+        <span class="kpi-label">⏳ In attesa riscontro</span>
+        <span class="kpi-value">{{ inAttesa().length }}</span>
+      </div>
+    </div>
+
+    <!-- ── Tab navigazione ─────────────────────────────────────────────── -->
+    <div class="tab-nav">
+      <button class="tab-btn" [class.active]="activeView()==='lista'"
+              (click)="activeView.set('lista')">
+        📋 Tutte le comunicazioni
+      </button>
+      <button class="tab-btn" [class.active]="activeView()==='in-attesa'"
+              (click)="activeView.set('in-attesa')">
+        ⏳ In attesa riscontro
+        @if (inAttesa().length > 0) {
+          <span class="badge-warn">{{ inAttesa().length }}</span>
+        }
+      </button>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         VISTA: LISTA COMUNICAZIONI
+    ════════════════════════════════════════════════════════════════════ -->
+    @if (activeView() === 'lista') {
+
+      <!-- Filtri avanzati -->
+      <div class="filter-row">
+        <select class="filter-select-sm"
+                [ngModel]="filterStato()"
+                (ngModelChange)="filterStato.set($event); onFilterChange()">
+          <option value="">Tutti gli stati</option>
+          @for (s of statiComList; track s) {
+            <option [value]="s">{{ statoLabel(s) }}</option>
+          }
+        </select>
+
+        <select class="filter-select-sm"
+                [ngModel]="filterEnte()"
+                (ngModelChange)="filterEnte.set($event); onFilterChange()">
+          <option value="">Tutti gli enti</option>
+          @for (e of entiList; track e) {
+            <option [value]="e">{{ enteLabel(e) }}</option>
+          }
+        </select>
+
+        <input type="date" class="date-input"
+               [ngModel]="filterFrom()"
+               (ngModelChange)="filterFrom.set($event); onFilterChange()" />
+        <span class="date-sep">→</span>
+        <input type="date" class="date-input"
+               [ngModel]="filterTo()"
+               (ngModelChange)="filterTo.set($event); onFilterChange()" />
+      </div>
+
+      <!-- Lista comunicazioni -->
+      @if (loading()) {
+        <div class="loading-state">⏳ Caricamento...</div>
+      } @else if (comunicazioni().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>Nessuna comunicazione trovata per i filtri selezionati.</p>
+          @if (isResponsabileOrAdmin()) {
+            <button class="btn-primary" (click)="openNew()">+ Aggiungi comunicazione</button>
+          }
+        </div>
+      } @else {
+        <div class="com-list">
+          @for (com of comunicazioni(); track com.id) {
+            <div class="com-card" [class]="'card-' + com.stato.toLowerCase()">
+
+              <!-- ── Intestazione card ──────────────────────────────────── -->
+              <div class="com-card-header" (click)="toggleExpand(com.id!)">
+                <div class="com-header-left">
+                  <span class="com-tipo-icon">{{ tipoIcon(com.tipo) }}</span>
+                  <div class="com-header-main">
+                    <span class="com-oggetto">{{ com.oggetto }}</span>
+                    <span class="com-meta">
+                      {{ enteLabel(com.ente) }}
+                      @if (com.enteUfficio) { · {{ com.enteUfficio }} }
+                    </span>
+                  </div>
+                </div>
+
+                <div class="com-header-right">
+                  <span class="stato-badge" [class]="statoClass(com.stato)">
+                    {{ statoIcon(com.stato) }} {{ statoLabel(com.stato) }}
+                  </span>
+                  @if (com.dataInvio) {
+                    <span class="com-data">{{ com.dataInvio | date:'dd/MM/yyyy' }}</span>
+                  }
+                  @if (com.hasRiscontro) {
+                    <span class="badge-riscontro" title="Riscontro ricevuto">✅ Riscontro</span>
+                  }
+                  <span class="expand-icon">{{ expandedId() === com.id ? '▲' : '▼' }}</span>
+                </div>
+              </div>
+
+              <!-- ── Dettaglio espandibile ──────────────────────────────── -->
+              @if (expandedId() === com.id) {
+                <div class="com-detail">
+
+                  <!-- Tipo comunicazione -->
+                  <div class="detail-row">
+                    <span class="detail-label">Tipo</span>
+                    <span>{{ tipoIcon(com.tipo) }} {{ tipoLabel(com.tipo) }}</span>
+                  </div>
+
+                  @if (com.protocolloInterno) {
+                    <div class="detail-row">
+                      <span class="detail-label">Protocollo interno</span>
+                      <span>{{ com.protocolloInterno }}</span>
+                    </div>
+                  }
+                  @if (com.protocolloEnte) {
+                    <div class="detail-row">
+                      <span class="detail-label">Protocollo ente</span>
+                      <span>{{ com.protocolloEnte }}</span>
+                    </div>
+                  }
+                  @if (com.numeroPecInvio) {
+                    <div class="detail-row">
+                      <span class="detail-label">ID PEC</span>
+                      <span>{{ com.numeroPecInvio }}</span>
+                    </div>
+                  }
+                  @if (com.enteReferente) {
+                    <div class="detail-row">
+                      <span class="detail-label">Referente ente</span>
+                      <span>{{ com.enteReferente }}</span>
+                    </div>
+                  }
+                  @if (com.contenuto) {
+                    <div class="detail-row detail-row-full">
+                      <span class="detail-label">Contenuto</span>
+                      <span class="detail-text">{{ com.contenuto }}</span>
+                    </div>
+                  }
+                  @if (com.note) {
+                    <div class="detail-row detail-row-full">
+                      <span class="detail-label">Note</span>
+                      <span class="detail-text">{{ com.note }}</span>
+                    </div>
+                  }
+
+                  <!-- Allegati -->
+                  @if (allegatiList(com.allegati).length > 0) {
+                    <div class="detail-row detail-row-full">
+                      <span class="detail-label">Allegati</span>
+                      <div class="allegati-list">
+                        @for (a of allegatiList(com.allegati); track a) {
+                          <span class="allegato-chip">📎 {{ a }}</span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <!-- Sezione riscontro -->
+                  @if (com.hasRiscontro || com.dataRiscontro) {
+                    <div class="riscontro-section">
+                      <div class="riscontro-header">✅ Riscontro / Risposta</div>
+                      @if (com.dataRiscontro) {
+                        <div class="detail-row">
+                          <span class="detail-label">Data riscontro</span>
+                          <span>{{ com.dataRiscontro | date:'dd/MM/yyyy' }}</span>
+                        </div>
+                      }
+                      @if (com.protocolloRiscontro) {
+                        <div class="detail-row">
+                          <span class="detail-label">Protocollo riscontro</span>
+                          <span>{{ com.protocolloRiscontro }}</span>
+                        </div>
+                      }
+                      @if (com.noteRiscontro) {
+                        <div class="detail-row detail-row-full">
+                          <span class="detail-label">Note riscontro</span>
+                          <span class="detail-text">{{ com.noteRiscontro }}</span>
+                        </div>
+                      }
+                      @if (allegatiList(com.allegatiRiscontro).length > 0) {
+                        <div class="detail-row detail-row-full">
+                          <span class="detail-label">Allegati risposta</span>
+                          <div class="allegati-list">
+                            @for (a of allegatiList(com.allegatiRiscontro); track a) {
+                              <span class="allegato-chip">📎 {{ a }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+
+                  <!-- Prescrizione collegata -->
+                  @if (com.prescrizioneOggetto) {
+                    <div class="detail-row">
+                      <span class="detail-label">Prescrizione</span>
+                      <span>📋 {{ com.prescrizioneOggetto }}</span>
+                    </div>
+                  }
+
+                  <!-- Azioni card -->
+                  @if (isResponsabileOrAdmin()) {
+                    <div class="com-actions">
+                      <!-- Transizioni stato -->
+                      @for (nuovoStato of transizioniDi(com); track nuovoStato) {
+                        <button class="btn-sm btn-stato"
+                                (click)="cambiaStato(com, nuovoStato)">
+                          {{ statoIcon(nuovoStato) }} → {{ statoLabel(nuovoStato) }}
+                        </button>
+                      }
+                      <button class="btn-sm btn-edit" (click)="editComunicazione(com)">✏️ Modifica</button>
+                      <button class="btn-sm btn-del" (click)="requestDelete(com.id!)">🗑️ Elimina</button>
+                    </div>
+                  }
+                </div>
+              }
+
+            </div>
+          }
+        </div>
+      }
+    }
+
+    <!-- ════════════════════════════════════════════════════════════════════
+         VISTA: IN ATTESA RISCONTRO
+    ════════════════════════════════════════════════════════════════════ -->
+    @if (activeView() === 'in-attesa') {
+      @if (inAttesa().length === 0) {
+        <div class="empty-state">
+          <div class="empty-icon">✅</div>
+          <p>Nessuna comunicazione in attesa di riscontro da più di 30 giorni.</p>
+        </div>
+      } @else {
+        <table class="com-table">
+          <thead>
+            <tr>
+              <th>Ente</th>
+              <th>Tipo</th>
+              <th>Oggetto</th>
+              <th>Data invio</th>
+              <th>Giorni attesa</th>
+              <th>Stato</th>
+              @if (isResponsabileOrAdmin()) { <th>Azioni</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (com of inAttesa(); track com.id) {
+              <tr>
+                <td>
+                  <strong>{{ enteLabel(com.ente) }}</strong>
+                  @if (com.enteUfficio) { <br><small>{{ com.enteUfficio }}</small> }
+                </td>
+                <td>{{ tipoIcon(com.tipo) }} {{ tipoLabel(com.tipo) }}</td>
+                <td>{{ com.oggetto }}</td>
+                <td>{{ com.dataInvio | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  @let gg = giorniTrascorsi(com.dataInvio);
+                  <span [class]="gg > 60 ? 'giorni-critico' : 'giorni-warn'">
+                    {{ gg }} gg
+                  </span>
+                </td>
+                <td>
+                  <span class="stato-badge" [class]="statoClass(com.stato)">
+                    {{ statoIcon(com.stato) }} {{ statoLabel(com.stato) }}
+                  </span>
+                </td>
+                @if (isResponsabileOrAdmin()) {
+                  <td>
+                    <button class="btn-sm btn-edit" (click)="editComunicazione(com)">✏️</button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+
+  } @else {
+    <div class="empty-state">
+      <div class="empty-icon">📬</div>
+      <p>Seleziona uno stabilimento per visualizzare le comunicazioni.</p>
+    </div>
+  }
+
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     MODAL: Nuova / Modifica comunicazione
+════════════════════════════════════════════════════════════════════════ -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h2>{{ editingId() ? '✏️ Modifica comunicazione' : '+ Nuova comunicazione' }}</h2>
+        <button class="btn-close" (click)="closeModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+
+          <!-- Stabilimento (solo new) -->
+          @if (!editingId()) {
+            <div class="form-field">
+              <label>Stabilimento *</label>
+              <select [ngModel]="formData().stabilimentoId"
+                      (ngModelChange)="patchForm('stabilimentoId', +$event)">
+                <option [ngValue]="undefined">— Seleziona —</option>
+                @for (s of stabilimenti(); track s.id) {
+                  <option [ngValue]="s.id">{{ s.nome }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <!-- Tipo -->
+          <div class="form-field">
+            <label>Tipo comunicazione *</label>
+            <select [ngModel]="formData().tipo"
+                    (ngModelChange)="patchForm('tipo', $event)">
+              <option [ngValue]="undefined">— Seleziona —</option>
+              @for (t of tipiComList; track t) {
+                <option [value]="t">{{ tipoIcon(t) }} {{ tipoLabel(t) }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Ente -->
+          <div class="form-field">
+            <label>Ente destinatario *</label>
+            <select [ngModel]="formData().ente"
+                    (ngModelChange)="patchForm('ente', $event)">
+              <option [ngValue]="undefined">— Seleziona —</option>
+              @for (e of entiList; track e) {
+                <option [value]="e">{{ enteLabel(e) }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Ufficio ente -->
+          <div class="form-field">
+            <label>Ufficio / Settore</label>
+            <input type="text" [ngModel]="formData().enteUfficio"
+                   (ngModelChange)="patchForm('enteUfficio', $event)"
+                   placeholder="es. Settore Ambiente" />
+          </div>
+
+          <!-- Referente -->
+          <div class="form-field">
+            <label>Referente ente</label>
+            <input type="text" [ngModel]="formData().enteReferente"
+                   (ngModelChange)="patchForm('enteReferente', $event)"
+                   placeholder="Nome del funzionario" />
+          </div>
+
+          <!-- Oggetto -->
+          <div class="form-field form-field-full">
+            <label>Oggetto *</label>
+            <input type="text" [ngModel]="formData().oggetto"
+                   (ngModelChange)="patchForm('oggetto', $event)"
+                   placeholder="Oggetto della comunicazione" />
+          </div>
+
+          <!-- Data invio -->
+          <div class="form-field">
+            <label>Data invio</label>
+            <input type="date" [ngModel]="formData().dataInvio"
+                   (ngModelChange)="patchForm('dataInvio', $event)" />
+          </div>
+
+          <!-- Stato -->
+          <div class="form-field">
+            <label>Stato</label>
+            <select [ngModel]="formData().stato"
+                    (ngModelChange)="patchForm('stato', $event)">
+              @for (s of statiComList; track s) {
+                <option [value]="s">{{ statoIcon(s) }} {{ statoLabel(s) }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Protocollo interno -->
+          <div class="form-field">
+            <label>Protocollo interno</label>
+            <input type="text" [ngModel]="formData().protocolloInterno"
+                   (ngModelChange)="patchForm('protocolloInterno', $event)"
+                   placeholder="es. 2025/001234" />
+          </div>
+
+          <!-- Numero PEC -->
+          <div class="form-field">
+            <label>ID / N° PEC</label>
+            <input type="text" [ngModel]="formData().numeroPecInvio"
+                   (ngModelChange)="patchForm('numeroPecInvio', $event)"
+                   placeholder="Identificativo messaggio PEC" />
+          </div>
+
+          <!-- Protocollo ente -->
+          <div class="form-field">
+            <label>Protocollo ente</label>
+            <input type="text" [ngModel]="formData().protocolloEnte"
+                   (ngModelChange)="patchForm('protocolloEnte', $event)"
+                   placeholder="Prot. assegnato dall'ente" />
+          </div>
+
+          <!-- Contenuto -->
+          <div class="form-field form-field-full">
+            <label>Contenuto / Descrizione</label>
+            <textarea rows="3" [ngModel]="formData().contenuto"
+                      (ngModelChange)="patchForm('contenuto', $event)"
+                      placeholder="Testo o descrizione della comunicazione"></textarea>
+          </div>
+
+          <!-- Allegati -->
+          <div class="form-field form-field-full">
+            <label>Allegati (nomi file, separati da virgola)</label>
+            <input type="text" [ngModel]="formData().allegati"
+                   (ngModelChange)="patchForm('allegati', $event)"
+                   placeholder="relazione.pdf, planimetria.dwg" />
+          </div>
+
+          <!-- Note -->
+          <div class="form-field form-field-full">
+            <label>Note</label>
+            <textarea rows="2" [ngModel]="formData().note"
+                      (ngModelChange)="patchForm('note', $event)"></textarea>
+          </div>
+
+          <!-- Sezione riscontro -->
+          <div class="form-field form-field-full">
+            <label class="checkbox-label">
+              <input type="checkbox"
+                     [ngModel]="formData().hasRiscontro"
+                     (ngModelChange)="patchForm('hasRiscontro', $event)" />
+              Riscontro / risposta ricevuta
+            </label>
+          </div>
+
+          @if (formData().hasRiscontro) {
+            <div class="form-field">
+              <label>Data riscontro</label>
+              <input type="date" [ngModel]="formData().dataRiscontro"
+                     (ngModelChange)="patchForm('dataRiscontro', $event)" />
+            </div>
+
+            <div class="form-field">
+              <label>Protocollo riscontro</label>
+              <input type="text" [ngModel]="formData().protocolloRiscontro"
+                     (ngModelChange)="patchForm('protocolloRiscontro', $event)" />
+            </div>
+
+            <div class="form-field form-field-full">
+              <label>Note riscontro</label>
+              <textarea rows="2" [ngModel]="formData().noteRiscontro"
+                        (ngModelChange)="patchForm('noteRiscontro', $event)"></textarea>
+            </div>
+
+            <div class="form-field form-field-full">
+              <label>Allegati risposta (nomi file, separati da virgola)</label>
+              <input type="text" [ngModel]="formData().allegatiRiscontro"
+                     (ngModelChange)="patchForm('allegatiRiscontro', $event)"
+                     placeholder="risposta_arpa.pdf" />
+            </div>
+          }
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary"
+                (click)="saveComunicazione()"
+                [disabled]="!formData().tipo || !formData().ente || !formData().oggetto">
+          💾 Salva
+        </button>
+        <button class="btn-secondary" (click)="closeModal()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ════════════════════════════════════════════════════════════════════════
+     MODAL: Conferma eliminazione
+════════════════════════════════════════════════════════════════════════ -->
+@if (confirmDeleteId()) {
+  <div class="modal-overlay">
+    <div class="modal-confirm">
+      <h3>🗑️ Elimina comunicazione</h3>
+      <p>Sei sicuro di voler eliminare questa comunicazione? L'operazione non è reversibile.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDelete()">Elimina</button>
+        <button class="btn-secondary"    (click)="cancelDelete()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}

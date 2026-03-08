@@ -1,0 +1,350 @@
+<div class="conformita-container">
+
+  <!-- HEADER ──────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <h1>🚦 Conformità Parametri</h1>
+    <div class="header-controls">
+      <select class="filter-select"
+        [value]="filterStabilimento() ?? ''"
+        (change)="filterStabilimento.set($any($event.target).value ? +$any($event.target).value : null); onStabilimentoChange()">
+        <option value="">— Seleziona stabilimento —</option>
+        @for (st of stabilimenti(); track st.id) {
+          <option [value]="st.id">{{ st.nome }}</option>
+        }
+      </select>
+      @if (isResponsabileOrAdmin() && filterStabilimento()) {
+        <button class="btn-primary" (click)="openNew()">+ Nuova Rilevazione</button>
+      }
+    </div>
+  </div>
+
+  @if (!filterStabilimento()) {
+    <div class="empty-state">
+      <div class="empty-icon">🚦</div>
+      <p>Seleziona uno stabilimento per visualizzare la conformità dei parametri.</p>
+    </div>
+  }
+
+  @if (errorMsg()) {
+    <div class="alert-error">
+      ⚠️ {{ errorMsg() }}
+      <button class="btn-close-alert" (click)="errorMsg.set(null)">✕</button>
+    </div>
+  }
+
+  @if (filterStabilimento()) {
+
+    <!-- RIEPILOGO KPI ────────────────────────────────────────────── -->
+    <div class="kpi-strip">
+      <div class="kpi-card kpi-conforme">
+        <div class="kpi-icon">🟢</div>
+        <div class="kpi-val">{{ totaleConformi() }}</div>
+        <div class="kpi-label">Conformi</div>
+        <div class="kpi-perc">{{ percConformi() }}%</div>
+      </div>
+      <div class="kpi-card kpi-attenzione">
+        <div class="kpi-icon">🟡</div>
+        <div class="kpi-val">{{ totaleAttenzione() }}</div>
+        <div class="kpi-label">Attenzione</div>
+        <div class="kpi-perc">{{ percAttenzione() }}%</div>
+      </div>
+      <div class="kpi-card kpi-nc">
+        <div class="kpi-icon">🔴</div>
+        <div class="kpi-val">{{ totaleNonConformi() }}</div>
+        <div class="kpi-label">Non Conformi</div>
+        <div class="kpi-perc">{{ percNonConformi() }}%</div>
+      </div>
+      <div class="kpi-card kpi-totale">
+        <div class="kpi-icon">📊</div>
+        <div class="kpi-val">{{ totaleMisure() }}</div>
+        <div class="kpi-label">Tot. Parametri</div>
+      </div>
+    </div>
+
+    <!-- TAB NAV ──────────────────────────────────────────────────── -->
+    <div class="tab-nav">
+      <button class="tab-btn" [class.active]="activeView() === 'dashboard'" (click)="onViewChange('dashboard')">
+        🚦 Dashboard Punti
+      </button>
+      <button class="tab-btn" [class.active]="activeView() === 'non-conformi'" (click)="onViewChange('non-conformi')">
+        🔴 Non Conformi ({{ nonConformi().length }})
+      </button>
+      <button class="tab-btn" [class.active]="activeView() === 'storico'" (click)="onViewChange('storico')">
+        📅 Storico Rilevazioni
+      </button>
+    </div>
+
+    @if (loading()) { <div class="loading-state">Caricamento…</div> }
+
+    <!-- ══════════ DASHBOARD ══════════ -->
+    @if (activeView() === 'dashboard' && !loading()) {
+      @if (puntiConformita().length === 0) {
+        <div class="empty-state-sm">Nessuna rilevazione registrata. Aggiungi la prima con "+ Nuova Rilevazione".</div>
+      }
+      <div class="punti-grid">
+        @for (punto of puntiConformita(); track punto.monitoraggioId) {
+          <div class="punto-card" [class]="'punto-' + (punto.statoGlobale?.toLowerCase() ?? 'nd')">
+            <div class="punto-card-header">
+              <div class="punto-semaforo">
+                <span class="semaforo-dot" [class]="'dot-' + (punto.statoGlobale?.toLowerCase() ?? 'nd')"></span>
+              </div>
+              <div class="punto-info">
+                <span class="punto-codice">{{ punto.monitoraggioCodice }}</span>
+                <span class="punto-tipo">{{ tipoIcon(punto.monitoraggioTipo) }} {{ tipoLabel(punto.monitoraggioTipo) }}</span>
+              </div>
+              <div class="punto-stato">
+                <span class="stato-badge" [class]="statoClass(punto.statoGlobale)">
+                  {{ statoLabel(punto.statoGlobale) }}
+                </span>
+              </div>
+              @if (isResponsabileOrAdmin()) {
+                <button class="btn-add-rilev" (click)="openNew(punto.monitoraggioId)" title="Nuova rilevazione">+</button>
+              }
+            </div>
+            <div class="punto-desc">{{ punto.monitoraggioDescrizione }}</div>
+
+            <!-- Parametri del punto -->
+            <div class="parametri-list">
+              @for (r of punto.rilevazioni; track r.id) {
+                <div class="param-row" [class]="'param-' + (r.statoConformita?.toLowerCase() ?? 'nd')">
+                  <div class="param-dot" [class]="'dot-' + (r.statoConformita?.toLowerCase() ?? 'nd')"></div>
+                  <div class="param-name">{{ r.parametroNome }}<span class="param-codice">{{ r.parametroCodice ? ' (' + r.parametroCodice + ')' : '' }}</span></div>
+                  <div class="param-value">
+                    <span class="val-num">{{ r.valoreMisurato | number:'1.0-3' }}</span>
+                    <span class="val-unit">{{ r.unitaMisura ?? r.parametroUnitaMisura }}</span>
+                    @if (r.parametroLimiteValore != null) {
+                      <span class="val-limite">/ {{ r.parametroLimiteValore }} max</span>
+                    }
+                  </div>
+                  <!-- Barra progressiva valore vs limite -->
+                  @if (r.parametroLimiteValore) {
+                    @let perc = percValoreVsLimite(r.valoreMisurato, r.parametroLimiteValore);
+                    <div class="progress-bar-wrap">
+                      <div class="progress-bar" [class]="barsClass(perc)" [style.width.%]="perc > 100 ? 100 : perc"></div>
+                      @if (perc > 100) {
+                        <div class="progress-overflow" [style.width.%]="perc - 100"></div>
+                      }
+                    </div>
+                  }
+                  <div class="param-date">{{ r.dataCampionamento | date:'dd/MM/yy' }}</div>
+                  @if (isResponsabileOrAdmin()) {
+                    <button class="btn-icon-sm" (click)="editRilevazione(r)" title="Modifica">✏️</button>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- ══════════ NON CONFORMI ══════════ -->
+    @if (activeView() === 'non-conformi' && !loading()) {
+      @if (nonConformi().length === 0) {
+        <div class="empty-state-sm all-ok">
+          <div style="font-size:2.5rem">✅</div>
+          <p>Nessuna non conformità registrata. Ottimo!</p>
+        </div>
+      } @else {
+        <table class="rilevazioni-table">
+          <thead>
+            <tr>
+              <th>Punto</th>
+              <th>Parametro</th>
+              <th>Data</th>
+              <th class="th-num">Valore</th>
+              <th class="th-num">Limite</th>
+              <th>Rapporto</th>
+              <th>Note</th>
+              @if (isResponsabileOrAdmin()) { <th class="th-actions"></th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of nonConformi(); track r.id) {
+              <tr class="row-nc">
+                <td><span class="codice-chip">{{ r.monitoraggioCodice }}</span></td>
+                <td>{{ r.parametroNome }} <span class="dim">{{ r.parametroCodice ? '(' + r.parametroCodice + ')' : '' }}</span></td>
+                <td>{{ r.dataCampionamento | date:'dd/MM/yyyy' }}</td>
+                <td class="td-num td-nc">{{ r.valoreMisurato | number:'1.0-3' }} {{ r.unitaMisura }}</td>
+                <td class="td-num">{{ r.parametroLimiteValore ?? '—' }} {{ r.parametroUnitaMisura }}</td>
+                <td class="td-small">{{ r.rapportoProva ?? '—' }}</td>
+                <td class="td-small">{{ r.note ?? '—' }}</td>
+                @if (isResponsabileOrAdmin()) {
+                  <td class="td-actions">
+                    <button class="btn-icon" (click)="editRilevazione(r)">✏️</button>
+                    <button class="btn-icon btn-danger" (click)="requestDelete(r.id!)">🗑️</button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+
+    <!-- ══════════ STORICO ══════════ -->
+    @if (activeView() === 'storico' && !loading()) {
+      <div class="storico-toolbar">
+        <input type="date" class="filter-input" [value]="filterFrom()"
+          (change)="filterFrom.set($any($event.target).value)" />
+        <span class="date-sep">→</span>
+        <input type="date" class="filter-input" [value]="filterTo()"
+          (change)="filterTo.set($any($event.target).value)" />
+
+        <select class="filter-select-sm" [value]="filterMonitoraggio() ?? ''"
+          (change)="filterMonitoraggio.set($any($event.target).value ? +$any($event.target).value : null)">
+          <option value="">Tutti i punti</option>
+          @for (p of puntiMon(); track p.id) {
+            <option [value]="p.id">{{ p.codice }} — {{ p.descrizione }}</option>
+          }
+        </select>
+
+        <select class="filter-select-sm" [value]="filterStato() ?? ''"
+          (change)="filterStato.set($any($event.target).value || null)">
+          <option value="">Tutti gli stati</option>
+          @for (s of statiConf; track s) { <option [value]="s">{{ statoIcon(s) }} {{ statoLabel(s) }}</option> }
+        </select>
+
+        <button class="btn-primary" (click)="loadStorico()">🔍 Cerca</button>
+      </div>
+
+      @if (storicoFiltrato().length === 0) {
+        <div class="empty-state-sm">Nessuna rilevazione nel periodo selezionato.</div>
+      } @else {
+        <table class="rilevazioni-table">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Punto</th>
+              <th>Parametro</th>
+              <th>Stato</th>
+              <th class="th-num">Valore</th>
+              <th class="th-num">Limite</th>
+              <th>Rapporto</th>
+              <th>Laboratorio</th>
+              @if (isResponsabileOrAdmin()) { <th class="th-actions">Azioni</th> }
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of storicoFiltrato(); track r.id) {
+              <tr>
+                <td>{{ r.dataCampionamento | date:'dd/MM/yyyy' }}</td>
+                <td><span class="codice-chip">{{ r.monitoraggioCodice }}</span></td>
+                <td>{{ r.parametroNome }} <span class="dim">{{ r.parametroCodice ? '(' + r.parametroCodice + ')' : '' }}</span></td>
+                <td>
+                  @if (r.statoConformita) {
+                    <span class="stato-badge" [class]="statoClass(r.statoConformita)">
+                      {{ statoIcon(r.statoConformita) }} {{ statoLabel(r.statoConformita) }}
+                    </span>
+                  } @else {
+                    <span class="text-muted">N/D</span>
+                  }
+                </td>
+                <td class="td-num" [class.td-nc]="r.statoConformita === StatoConformita.NON_CONFORME">
+                  {{ r.valoreMisurato | number:'1.0-3' }} {{ r.unitaMisura }}
+                </td>
+                <td class="td-num">{{ r.parametroLimiteValore ?? '—' }}</td>
+                <td class="td-small">{{ r.rapportoProva ?? '—' }}</td>
+                <td class="td-small">{{ r.laboratorio ?? '—' }}</td>
+                @if (isResponsabileOrAdmin()) {
+                  <td class="td-actions">
+                    <button class="btn-icon" (click)="editRilevazione(r)">✏️</button>
+                    <button class="btn-icon btn-danger" (click)="requestDelete(r.id!)">🗑️</button>
+                  </td>
+                }
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    }
+
+  }
+</div>
+
+<!-- ══════════ MODAL RILEVAZIONE ══════════ -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="showModal.set(false)">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingId() ? 'Modifica Rilevazione' : 'Nuova Rilevazione' }}</h2>
+        <button class="btn-close" (click)="showModal.set(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field form-field-full">
+            <label>Punto di monitoraggio *</label>
+            <select [value]="formData().monitoraggioId ?? ''"
+              (change)="onMonitoraggioFormChange($any($event.target).value ? +$any($event.target).value : undefined)">
+              <option value="">— Seleziona —</option>
+              @for (p of puntiMon(); track p.id) {
+                <option [value]="p.id">{{ p.codice }} — {{ p.descrizione }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field form-field-full">
+            <label>Parametro *</label>
+            <select [value]="formData().parametroMonitoraggioId ?? ''"
+              (change)="onParametroSelect(+$any($event.target).value)"
+              [disabled]="!formData().monitoraggioId">
+              <option value="">— Seleziona parametro —</option>
+              @for (p of parametriDisp(); track p.id) {
+                <option [value]="p.id">{{ p.label }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Data campionamento *</label>
+            <input type="date" [value]="formData().dataCampionamento ?? ''"
+              (input)="patchForm('dataCampionamento', $any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label>Valore misurato *</label>
+            <input type="number" step="any" min="0" [value]="formData().valoreMisurato ?? ''"
+              (input)="patchForm('valoreMisurato', +$any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label>Unità di misura</label>
+            <input type="text" [value]="formData().unitaMisura ?? ''"
+              (input)="patchForm('unitaMisura', $any($event.target).value)" placeholder="mg/l, dB, µg/Nm³…" />
+          </div>
+          <div class="form-field">
+            <label>N° Rapporto di Prova</label>
+            <input type="text" [value]="formData().rapportoProva ?? ''"
+              (input)="patchForm('rapportoProva', $any($event.target).value)" placeholder="es. LAB-2024-001" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Laboratorio</label>
+            <input type="text" [value]="formData().laboratorio ?? ''"
+              (input)="patchForm('laboratorio', $any($event.target).value)" placeholder="Ragione sociale laboratorio" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Note</label>
+            <textarea rows="2" [value]="formData().note ?? ''"
+              (input)="patchForm('note', $any($event.target).value)"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary"
+          [disabled]="!formData().parametroMonitoraggioId || !formData().dataCampionamento || formData().valoreMisurato == null"
+          (click)="saveRilevazione()">Salva</button>
+        <button class="btn-secondary" (click)="showModal.set(false)">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════ CONFERMA ELIMINAZIONE ══════════ -->
+@if (confirmDeleteId()) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-confirm" (click)="$event.stopPropagation()">
+      <h3>⚠️ Eliminare la rilevazione?</h3>
+      <p>L'operazione è irreversibile.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDelete()">Elimina</button>
+        <button class="btn-secondary" (click)="cancelDelete()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}

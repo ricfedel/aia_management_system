@@ -1,0 +1,158 @@
+@if (currentUser()) {
+  <aside class="sidebar" [class.collapsed]="collapsed()">
+
+    <!-- ── Header: logo + toggle ─────────────────────────────────── -->
+    <div class="sidebar-header">
+      <div class="logo-wrap">
+        <div class="logo-badge">GMI</div>
+        @if (!collapsed()) {
+          <div class="brand-text">
+            <span class="company-name">{{ 'common.companyName' | translate }}</span>
+            <span class="app-name">{{ 'common.appName' | translate }}</span>
+          </div>
+        }
+      </div>
+      <button class="toggle-btn" (click)="toggle()" [title]="collapsed() ? 'Espandi menu' : 'Comprimi menu'">
+        {{ collapsed() ? '›' : '‹' }}
+      </button>
+    </div>
+
+    <!-- ── Navigazione ────────────────────────────────────────────── -->
+    <nav class="sidebar-nav">
+      <ul>
+
+        <!-- Dashboard -->
+        <li>
+          <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}" [title]="collapsed() ? 'Dashboard' : ''">
+            <span class="nav-icon">📊</span>
+            @if (!collapsed()) { <span class="nav-label">{{ 'nav.dashboard' | translate }}</span> }
+          </a>
+        </li>
+
+        <!-- ── GESTIONE AIA ── -->
+        <li class="nav-group-separator">
+          @if (!collapsed()) { <span class="nav-group-label">Gestione AIA</span> }
+        </li>
+        <li>
+          <a routerLink="/stabilimenti" routerLinkActive="active" [title]="collapsed() ? 'Stabilimenti' : ''">
+            <span class="nav-icon">🏭</span>
+            @if (!collapsed()) { <span class="nav-label">{{ 'nav.stabilimenti' | translate }}</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/prescrizioni" routerLinkActive="active" [title]="collapsed() ? 'Prescrizioni' : ''">
+            <span class="nav-icon">📋</span>
+            @if (!collapsed()) { <span class="nav-label">{{ 'nav.prescrizioni' | translate }}</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/scadenze" routerLinkActive="active" [title]="collapsed() ? 'Scadenze' : ''">
+            <span class="nav-icon">⏰</span>
+            @if (!collapsed()) { <span class="nav-label">{{ 'nav.scadenze' | translate }}</span> }
+          </a>
+        </li>
+
+        <!-- ── MONITORAGGIO ── -->
+        <li class="nav-group-separator">
+          @if (!collapsed()) { <span class="nav-group-label">Monitoraggio</span> }
+        </li>
+        <li>
+          <a routerLink="/anagrafica-camini" routerLinkActive="active" [title]="collapsed() ? 'Anagrafica camini' : ''">
+            <span class="nav-icon">🏭</span>
+            @if (!collapsed()) { <span class="nav-label">Anagrafica camini</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/punti-monitoraggio" routerLinkActive="active" [title]="collapsed() ? 'Punti PMC' : ''">
+            <span class="nav-icon">🔬</span>
+            @if (!collapsed()) { <span class="nav-label">Punti PMC</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/dati-ambientali" routerLinkActive="active" [title]="collapsed() ? 'Dati ambientali' : ''">
+            <span class="nav-icon">🌍</span>
+            @if (!collapsed()) { <span class="nav-label">{{ 'nav.datiAmbientali' | translate }}</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/conformita" routerLinkActive="active" [title]="collapsed() ? 'Conformità' : ''">
+            <span class="nav-icon">🚦</span>
+            @if (!collapsed()) { <span class="nav-label">Conformità</span> }
+          </a>
+        </li>
+
+        <!-- ── PRODUZIONE ── -->
+        <li class="nav-group-separator">
+          @if (!collapsed()) { <span class="nav-group-label">Produzione</span> }
+        </li>
+        <li>
+          <a routerLink="/produzione-consumi" routerLinkActive="active" [title]="collapsed() ? 'Produzione' : ''">
+            <span class="nav-icon">🏗️</span>
+            @if (!collapsed()) { <span class="nav-label">Produzione & Consumi</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/rifiuti" routerLinkActive="active" [title]="collapsed() ? 'Rifiuti' : ''">
+            <span class="nav-icon">♻️</span>
+            @if (!collapsed()) { <span class="nav-label">Rifiuti</span> }
+          </a>
+        </li>
+
+        <!-- ── REPORTISTICA ── -->
+        <li class="nav-group-separator">
+          @if (!collapsed()) { <span class="nav-group-label">Reportistica</span> }
+        </li>
+        <li>
+          <a routerLink="/relazione-annuale" routerLinkActive="active" [title]="collapsed() ? 'Relazione AIA' : ''">
+            <span class="nav-icon">📄</span>
+            @if (!collapsed()) { <span class="nav-label">Relazione AIA</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/comunicazioni" routerLinkActive="active" [title]="collapsed() ? 'Comunicazioni' : ''">
+            <span class="nav-icon">📬</span>
+            @if (!collapsed()) { <span class="nav-label">Comunicazioni</span> }
+          </a>
+        </li>
+
+        <!-- ── DOCUMENTI & PROCESSI ── -->
+        <li class="nav-group-separator">
+          @if (!collapsed()) { <span class="nav-group-label">Documenti & Processi</span> }
+        </li>
+        <li>
+          <a routerLink="/documenti" routerLinkActive="active" [title]="collapsed() ? 'Documenti' : ''">
+            <span class="nav-icon">🗂️</span>
+            @if (!collapsed()) { <span class="nav-label">{{ 'nav.documenti' | translate }}</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/processi" routerLinkActive="active" [title]="collapsed() ? 'Processi BPM' : ''">
+            <span class="nav-icon">⚙️</span>
+            @if (!collapsed()) { <span class="nav-label">Processi BPM</span> }
+          </a>
+        </li>
+        <li>
+          <a routerLink="/workflow" routerLinkActive="active" [title]="collapsed() ? 'Workflow' : ''">
+            <span class="nav-icon">🎨</span>
+            @if (!collapsed()) { <span class="nav-label">Workflow</span> }
+          </a>
+        </li>
+
+        <!-- ── AMMINISTRAZIONE (solo ADMIN) ── -->
+        @if (isAdmin()) {
+          <li class="nav-group-separator">
+            @if (!collapsed()) { <span class="nav-group-label">Amministrazione</span> }
+          </li>
+          <li>
+            <a routerLink="/utenti" routerLinkActive="active" [title]="collapsed() ? 'Utenti' : ''">
+              <span class="nav-icon">👥</span>
+              @if (!collapsed()) { <span class="nav-label">Utenti</span> }
+            </a>
+          </li>
+        }
+
+      </ul>
+    </nav>
+
+  </aside>
+}

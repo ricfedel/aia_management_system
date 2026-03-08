@@ -1,0 +1,287 @@
+<div class="page-container">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">🏭 Anagrafica Camini</h1>
+      <span class="subtitle">Quadro emissivo – punti di emissione in atmosfera</span>
+    </div>
+    <button class="btn-primary" (click)="openNew()">+ Nuovo camino</button>
+  </div>
+
+  <!-- ── Filtri ──────────────────────────────────────────────────────── -->
+  <div class="filters-bar">
+    <input class="filter-input filter-search"
+           type="text"
+           placeholder="🔍 Cerca sigla, origine, abbattimento…"
+           [value]="filtroTesto()"
+           (input)="filtroTesto.set($any($event.target).value)" />
+
+    <select class="filter-select"
+            [value]="filtroStabilimento() ?? ''"
+            (change)="filtroStabilimento.set($any($event.target).value ? +$any($event.target).value : null)">
+      <option value="">Tutti gli stabilimenti</option>
+      @for (s of stabilimenti(); track s.id) {
+        <option [value]="s.id">{{ s.nome }}</option>
+      }
+    </select>
+
+    <select class="filter-select"
+            [value]="filtroFase() ?? ''"
+            (change)="filtroFase.set($any($event.target).value || null)">
+      <option value="">Tutte le fasi</option>
+      @for (f of fasiList; track f) {
+        <option [value]="f">{{ faseLabelMap[f] }}</option>
+      }
+    </select>
+
+    <select class="filter-select filter-select-sm"
+            [value]="filtroAttivo() === null ? '' : filtroAttivo()"
+            (change)="filtroAttivo.set($any($event.target).value === '' ? null : $any($event.target).value === 'true')">
+      <option value="">Tutti</option>
+      <option value="true">Attivi</option>
+      <option value="false">Non attivi</option>
+    </select>
+
+    <span class="filter-count">{{ caminiFiltered().length }} camini</span>
+  </div>
+
+  <!-- ── Stato ───────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="state-msg">⏳ Caricamento…</div>
+  } @else if (error()) {
+    <div class="state-msg error">⚠️ {{ error() }}</div>
+  }
+
+  <!-- ── Tabella ─────────────────────────────────────────────────────── -->
+  @if (!loading() && caminiFiltered().length > 0) {
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Sigla</th>
+            <th>Stabilimento</th>
+            <th>Fase</th>
+            <th>Origine</th>
+            <th class="num">Portata<br><small>Nm³/h</small></th>
+            <th class="num">Sezione<br><small>m²</small></th>
+            <th class="num">Velocità<br><small>m/s</small></th>
+            <th class="num">Temp.</th>
+            <th class="num">Altezza<br><small>m</small></th>
+            <th class="num">h/g</th>
+            <th class="num">g/a</th>
+            <th>Abbattimento</th>
+            <th class="st">Stato</th>
+            <th class="actions">Azioni</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of caminiFiltered(); track c.id) {
+            <tr [class.inactive]="!c.attivo">
+              <td><span class="sigla-badge">{{ c.sigla }}</span></td>
+              <td class="stab-name">{{ c.stabilimentoNome }}</td>
+              <td><span class="fase-tag fase-{{ c.faseProcesso }}">{{ faseLabelMap[c.faseProcesso!] ?? c.faseProcesso }}</span></td>
+              <td class="origine">{{ c.origine ?? '—' }}</td>
+              <td class="num">{{ c.portataNomc3h ?? '—' }}</td>
+              <td class="num">{{ c.sezioneM2 ?? '—' }}</td>
+              <td class="num">{{ c.velocitaMs ?? '—' }}</td>
+              <td class="num">{{ temperaturaLabel(c) }}</td>
+              <td class="num">{{ c.altezzaM ?? '—' }}</td>
+              <td class="num">{{ c.durataHGiorno ?? '—' }}</td>
+              <td class="num">{{ c.durataGAnno ?? '—' }}</td>
+              <td class="abbattimento">{{ c.impiantoAbbattimento ?? '—' }}</td>
+              <td class="st">
+                @if (c.attivo) {
+                  <span class="badge-ok">Attivo</span>
+                } @else {
+                  <span class="badge-no">Inattivo</span>
+                }
+              </td>
+              <td class="actions">
+                <button class="btn-icon" title="Modifica" (click)="openEdit(c)">✏️</button>
+                <button class="btn-icon btn-icon-del" title="Elimina" (click)="confirmDelete(c.id!)">🗑️</button>
+              </td>
+            </tr>
+            @if (c.note) {
+              <tr class="note-row">
+                <td colspan="14" class="note-cell">📌 {{ c.note }}</td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  @if (!loading() && caminiFiltered().length === 0 && !error()) {
+    <div class="state-msg">Nessun camino trovato con i filtri applicati.</div>
+  }
+
+</div>
+
+<!-- ── Modal creazione/modifica ──────────────────────────────────────── -->
+@if (showModal()) {
+  <div class="modal-overlay" (click)="closeModal()">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEdit() ? 'Modifica camino' : 'Nuovo camino' }}</h2>
+        <button class="modal-close" (click)="closeModal()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        @if (modalError()) {
+          <div class="modal-error">⚠️ {{ modalError() }}</div>
+        }
+
+        <div class="form-grid">
+
+          <!-- Stabilimento -->
+          <div class="field full">
+            <label>Stabilimento *</label>
+            <select [value]="form().stabilimentoId ?? ''"
+                    (change)="updateForm({ stabilimentoId: +$any($event.target).value })">
+              <option value="">— seleziona —</option>
+              @for (s of stabilimenti(); track s.id) {
+                <option [value]="s.id">{{ s.nome }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Sigla -->
+          <div class="field">
+            <label>Sigla *</label>
+            <input type="text" placeholder="es. E1"
+                   [value]="form().sigla ?? ''"
+                   (input)="updateForm({ sigla: $any($event.target).value })" />
+          </div>
+
+          <!-- Fase processo -->
+          <div class="field">
+            <label>Fase di processo</label>
+            <select [value]="form().faseProcesso ?? ''"
+                    (change)="updateForm({ faseProcesso: $any($event.target).value || undefined })">
+              <option value="">— nessuna —</option>
+              @for (f of fasiList; track f) {
+                <option [value]="f">{{ faseLabelMap[f] }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Origine -->
+          <div class="field full">
+            <label>Origine / descrizione</label>
+            <input type="text" placeholder="es. trasportatore torre, vibroblok…"
+                   [value]="form().origine ?? ''"
+                   (input)="updateForm({ origine: $any($event.target).value })" />
+          </div>
+
+          <!-- Dati tecnici -->
+          <div class="field">
+            <label>Portata (Nm³/h)</label>
+            <input type="number" [value]="form().portataNomc3h ?? ''"
+                   (input)="updateForm({ portataNomc3h: $any($event.target).value ? +$any($event.target).value : undefined })" />
+          </div>
+
+          <div class="field">
+            <label>Sezione (m²)</label>
+            <input type="number" step="0.001" [value]="form().sezioneM2 ?? ''"
+                   (input)="updateForm({ sezioneM2: $any($event.target).value ? +$any($event.target).value : undefined })" />
+          </div>
+
+          <div class="field">
+            <label>Velocità (m/s)</label>
+            <input type="number" step="0.01" [value]="form().velocitaMs ?? ''"
+                   (input)="updateForm({ velocitaMs: $any($event.target).value ? +$any($event.target).value : undefined })" />
+          </div>
+
+          <div class="field">
+            <label>Temperatura</label>
+            <div class="temp-row">
+              <label class="checkbox-label">
+                <input type="checkbox"
+                       [checked]="form().temperaturaAmbiente ?? true"
+                       (change)="updateForm({ temperaturaAmbiente: $any($event.target).checked, temperaturaC: $any($event.target).checked ? undefined : form().temperaturaC })" />
+                Ambiente
+              </label>
+              @if (!form().temperaturaAmbiente) {
+                <input type="number" step="0.1" placeholder="°C" class="temp-input"
+                       [value]="form().temperaturaC ?? ''"
+                       (input)="updateForm({ temperaturaC: +$any($event.target).value })" />
+              }
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Altezza camino (m)</label>
+            <input type="number" step="0.5" [value]="form().altezzaM ?? ''"
+                   (input)="updateForm({ altezzaM: $any($event.target).value ? +$any($event.target).value : undefined })" />
+          </div>
+
+          <div class="field">
+            <label>Durata (h/giorno)</label>
+            <input type="number" [value]="form().durataHGiorno ?? ''"
+                   (input)="updateForm({ durataHGiorno: $any($event.target).value ? +$any($event.target).value : undefined })" />
+          </div>
+
+          <div class="field">
+            <label>Durata (giorni/anno)</label>
+            <input type="number" [value]="form().durataGAnno ?? 365"
+                   (input)="updateForm({ durataGAnno: +$any($event.target).value })" />
+          </div>
+
+          <!-- Impianto abbattimento -->
+          <div class="field full">
+            <label>Impianto di abbattimento</label>
+            <input type="text" placeholder="es. filtro a maniche, ciclone…"
+                   [value]="form().impiantoAbbattimento ?? ''"
+                   (input)="updateForm({ impiantoAbbattimento: $any($event.target).value })" />
+          </div>
+
+          <!-- Note -->
+          <div class="field full">
+            <label>Note</label>
+            <textarea rows="2" placeholder="Note aggiuntive…"
+                      [value]="form().note ?? ''"
+                      (input)="updateForm({ note: $any($event.target).value })"></textarea>
+          </div>
+
+          <!-- Attivo -->
+          <div class="field">
+            <label class="checkbox-label">
+              <input type="checkbox"
+                     [checked]="form().attivo ?? true"
+                     (change)="updateForm({ attivo: $any($event.target).checked })" />
+              Camino attivo / in esercizio
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="closeModal()" [disabled]="saving()">Annulla</button>
+        <button class="btn-primary" (click)="save()" [disabled]="saving()">
+          {{ saving() ? '⏳ Salvataggio…' : (isEdit() ? 'Salva modifiche' : 'Crea camino') }}
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ── Conferma eliminazione ──────────────────────────────────────────── -->
+@if (deleteId()) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-box modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Conferma eliminazione</h2>
+      </div>
+      <div class="modal-body">
+        <p>Eliminare definitivamente questo camino dall'anagrafica?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" (click)="cancelDelete()">Annulla</button>
+        <button class="btn-danger" (click)="doDelete()">Elimina</button>
+      </div>
+    </div>
+  </div>
+}

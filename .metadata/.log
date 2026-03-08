@@ -1,0 +1,722 @@
+!SESSION 2026-02-20 08:54:55.073 -----------------------------------------------
+eclipse.buildId=4.36.0.20250605-1300
+java.version=21.0.7
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=aarch64, WS=cocoa, NL=it_IT
+Framework arguments:  -product org.eclipse.epp.package.jee.product -keyring /Users/riccardo.fedel/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch aarch64 -product org.eclipse.epp.package.jee.product -keyring /Users/riccardo.fedel/.eclipse_keyring
+
+!ENTRY ch.qos.logback.classic 1 0 2026-02-20 08:54:58.248
+!MESSAGE Activated before the state location was initialized. Retry after the state location is initialized.
+
+!ENTRY ch.qos.logback.classic 1 0 2026-02-20 08:56:42.669
+!MESSAGE Logback config file: /Users/riccardo.fedel/Library/Application Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system 2/.metadata/.plugins/org.eclipse.m2e.logback/logback.2.7.100.20250418-1315.xml
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 08:56:45.521
+!MESSAGE [Info] Starting language server with binary lsp agent.
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 08:56:45.523
+!MESSAGE [Info] Found native binary in fragment bundle: com.microsoft.copilot.eclipse.core.agent.macosx.aarch64
+
+!ENTRY org.eclipse.buildship.core 2 0 2026-02-20 08:56:45.663
+!MESSAGE Could not load Gradle version information
+!STACK 0
+org.gradle.api.UncheckedIOException: Cannot download published Gradle versions.
+	at org.eclipse.buildship.core.internal.util.gradle.PublishedGradleVersions.downloadVersionInformation(PublishedGradleVersions.java:167)
+	at org.eclipse.buildship.core.internal.util.gradle.PublishedGradleVersions.tryToDownloadAndCacheVersions(PublishedGradleVersions.java:151)
+	at org.eclipse.buildship.core.internal.util.gradle.PublishedGradleVersions.create(PublishedGradleVersions.java:111)
+	at org.eclipse.buildship.core.internal.util.gradle.PublishedGradleVersionsWrapper$LoadVersionsJob.run(PublishedGradleVersionsWrapper.java:73)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: java.net.UnknownHostException: services.gradle.org
+	at java.base/sun.nio.ch.NioSocketImpl.connect(NioSocketImpl.java:567)
+	at java.base/java.net.SocksSocketImpl.connect(SocksSocketImpl.java:327)
+	at java.base/java.net.Socket.connect(Socket.java:751)
+	at java.base/sun.security.ssl.SSLSocketImpl.connect(SSLSocketImpl.java:304)
+	at java.base/sun.net.NetworkClient.doConnect(NetworkClient.java:178)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:531)
+	at java.base/sun.net.www.http.HttpClient.openServer(HttpClient.java:636)
+	at java.base/sun.net.www.protocol.https.HttpsClient.<init>(HttpsClient.java:264)
+	at java.base/sun.net.www.protocol.https.HttpsClient.New(HttpsClient.java:377)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.getNewHttpClient(AbstractDelegateHttpsURLConnection.java:193)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect0(HttpURLConnection.java:1252)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.plainConnect(HttpURLConnection.java:1138)
+	at java.base/sun.net.www.protocol.https.AbstractDelegateHttpsURLConnection.connect(AbstractDelegateHttpsURLConnection.java:179)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream0(HttpURLConnection.java:1690)
+	at java.base/sun.net.www.protocol.http.HttpURLConnection.getInputStream(HttpURLConnection.java:1614)
+	at java.base/sun.net.www.protocol.https.HttpsURLConnectionImpl.getInputStream(HttpsURLConnectionImpl.java:223)
+	at org.eclipse.buildship.core.internal.util.gradle.PublishedGradleVersions.downloadVersionInformation(PublishedGradleVersions.java:164)
+	... 4 more
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 08:56:46.822
+!MESSAGE [Info] Lsp agent started successfully.
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 08:56:49.183
+!MESSAGE [Info]	[lsp] GitHub Copilot Language Server 1.401.0 initialized
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 08:56:49.195
+!MESSAGE [Info]	[default] Policy watcher started for GitHub Copilot Plugin
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 08:56:49.279
+!MESSAGE [Info]	[certificates] Removed 3 expired certificates
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:56:49.294
+!MESSAGE [Error]	[lsp] Request checkStatus: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24 {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:56:49.295
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request checkStatus failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.CompletionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request checkStatus failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.encodeRelay(CompletableFuture.java:368)
+	at java.base/java.util.concurrent.CompletableFuture.completeRelay(CompletableFuture.java:377)
+	at java.base/java.util.concurrent.CompletableFuture$UniRelay.tryFire(CompletableFuture.java:1097)
+	at java.base/java.util.concurrent.CompletableFuture.postComplete(CompletableFuture.java:510)
+	at java.base/java.util.concurrent.CompletableFuture.completeExceptionally(CompletableFuture.java:2194)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request checkStatus failed with message: getaddrinfo ENOTFOUND api.github.com
+	... 11 more
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:56:49.306
+!MESSAGE [Error]	[GithubAvailableEmbeddingTypes] Error fetching available embedding types FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at Z3e.doGetAvailableTypes (/snapshot/copilot-client/lib/src/workspaceChunkSearch/embeddings/githubAvailableEmbeddingTypes.ts:79:24)
+    at Z3e.getAllAvailableTypes (/snapshot/copilot-client/lib/src/workspaceChunkSearch/embeddings/githubAvailableEmbeddingTypes.ts:50:38)
+    at Z3e.getPreferredType (/snapshot/copilot-client/lib/src/workspaceChunkSearch/embeddings/githubAvailableEmbeddingTypes.ts:129:24)
+    at Ob.tryInit (/snapshot/copilot-client/lib/src/workspaceChunkSearch/workspaceChunkSearchService.ts:130:22) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 08:56:49.308
+!MESSAGE [Info]	[GithubAvailableEmbeddingTypes] Could not find any available embedding types. Error: requestFailed
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:56:49.309
+!MESSAGE [Error]	[GithubAvailableEmbeddingTypes] Error fetching available embedding types FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at Z3e.doGetAvailableTypes (/snapshot/copilot-client/lib/src/workspaceChunkSearch/embeddings/githubAvailableEmbeddingTypes.ts:79:24)
+    at /snapshot/copilot-client/lib/src/workspaceChunkSearch/embeddings/githubAvailableEmbeddingTypes.ts:69:20
+    at Z3e.getPreferredType (/snapshot/copilot-client/lib/src/workspaceChunkSearch/embeddings/githubAvailableEmbeddingTypes.ts:129:24)
+    at Ob.tryInit (/snapshot/copilot-client/lib/src/workspaceChunkSearch/workspaceChunkSearchService.ts:130:22) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:06.049
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:06.049
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:12.679
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:12.680
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:17.697
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:17.697
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:25.449
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:25.450
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:35.547
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:35.547
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:37.643
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:37.644
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:43.736
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:43.742
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:45.362
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:45.362
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY org.eclipse.lsp4e 4 0 2026-02-20 08:58:46.992
+!MESSAGE [Error]	[lsp] Request getCompletions: FetchError: getaddrinfo ENOTFOUND api.github.com
+    at fetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:99:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at cachingFetch (/snapshot/copilot-client/node_modules/@adobe/helix-fetch/src/fetch/index.js:288:16)
+    at pte.fetch (/snapshot/copilot-client/lib/src/network/helix.ts:160:22)
+    at apiFetch (/snapshot/copilot-client/lib/src/network/github.ts:32:22)
+    at authFromGitHubSession (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:181:22)
+    at bye.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotToken.ts:258:16)
+    at Pt.fetchTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:78:16)
+    at /snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:101:24
+    at Pt.getTokenResult (/snapshot/copilot-client/lib/src/auth/copilotTokenManager.ts:120:16) {
+  type: 'system',
+  _name: 'FetchError',
+  code: 'ENOTFOUND',
+  errno: -3008,
+  erroredSysCall: 'getaddrinfo'
+}
+
+!ENTRY com.microsoft.copilot.eclipse 4 0 2026-02-20 08:58:46.993
+!MESSAGE [Error] org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+!STACK 0
+java.util.concurrent.ExecutionException: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at java.base/java.util.concurrent.CompletableFuture.reportGet(CompletableFuture.java:396)
+	at java.base/java.util.concurrent.CompletableFuture.get(CompletableFuture.java:2096)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.runCompletion(CompletionProvider.java:194)
+	at com.microsoft.copilot.eclipse.core.completion.CompletionProvider$CompletionJob.run(CompletionProvider.java:168)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: org.eclipse.lsp4j.jsonrpc.ResponseErrorException: Request getCompletions failed with message: getaddrinfo ENOTFOUND api.github.com
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleResponse(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:204)
+	at org.eclipse.lsp4e.LanguageServerWrapper.lambda$3(LanguageServerWrapper.java:358)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:185)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:97)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:114)
+	at java.base/java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:572)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:317)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 13:21:48.969
+!MESSAGE [Info] Document is null for editor: ExcelExportService.java
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 13:21:48.970
+!MESSAGE [Info] Completion handler is refreshed for the document: file:///Users/riccardo.fedel/Library/Application%20Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system%202/backend/src/main/java/it/grandimolini/aia/service/ExcelExportService.java
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 13:21:49.000
+!MESSAGE [Info] Document is null for editor: ExcelExportService.java
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 13:21:49.000
+!MESSAGE [Info] Completion handler is refreshed for the document: file:///Users/riccardo.fedel/Library/Application%20Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system%202/backend/src/main/java/it/grandimolini/aiamanagement/service/ExcelExportService.java
+
+!ENTRY com.microsoft.copilot.eclipse.ui 4 0 2026-02-20 13:21:49.323
+!MESSAGE FrameworkEvent ERROR
+!STACK 0
+org.osgi.framework.BundleException: Exception in com.microsoft.copilot.eclipse.ui.CopilotUi.stop() of bundle com.microsoft.copilot.eclipse.ui.
+	at org.eclipse.osgi.internal.framework.BundleContextImpl.stop(BundleContextImpl.java:916)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle.stopWorker0(EquinoxBundle.java:1080)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$EquinoxModule.stopWorker(EquinoxBundle.java:399)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.decStartLevel(ModuleContainer.java:2153)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.doContainerStartLevel(ModuleContainer.java:2022)
+	at org.eclipse.osgi.container.SystemModule.stopWorker(SystemModule.java:281)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule.stopWorker(EquinoxBundle.java:225)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.SystemModule.stop(SystemModule.java:212)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule$1.run(EquinoxBundle.java:244)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.eclipse.swt.SWTException: Invalid thread access
+	at org.eclipse.swt.SWT.error(SWT.java:4945)
+	at org.eclipse.swt.SWT.error(SWT.java:4860)
+	at org.eclipse.swt.SWT.error(SWT.java:4831)
+	at org.eclipse.swt.widgets.Display.error(Display.java:1211)
+	at org.eclipse.swt.widgets.Display.createDisplay(Display.java:962)
+	at org.eclipse.swt.widgets.Display.create(Display.java:946)
+	at org.eclipse.swt.graphics.Device.<init>(Device.java:132)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:800)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:791)
+	at org.eclipse.swt.widgets.Display.getDefault(Display.java:1545)
+	at com.microsoft.copilot.eclipse.ui.utils.SwtUtils.invokeOnDisplayThread(SwtUtils.java:61)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService.ensureRealm(ChatBaseService.java:106)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.disposeAllSideEffects(ModelService.java:731)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.dispose(ModelService.java:758)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager.dispose(ChatServiceManager.java:161)
+	at com.microsoft.copilot.eclipse.ui.CopilotUi.stop(CopilotUi.java:213)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:896)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:1)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl.stop(BundleContextImpl.java:888)
+	... 13 more
+Root exception:
+org.eclipse.swt.SWTException: Invalid thread access
+	at org.eclipse.swt.SWT.error(SWT.java:4945)
+	at org.eclipse.swt.SWT.error(SWT.java:4860)
+	at org.eclipse.swt.SWT.error(SWT.java:4831)
+	at org.eclipse.swt.widgets.Display.error(Display.java:1211)
+	at org.eclipse.swt.widgets.Display.createDisplay(Display.java:962)
+	at org.eclipse.swt.widgets.Display.create(Display.java:946)
+	at org.eclipse.swt.graphics.Device.<init>(Device.java:132)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:800)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:791)
+	at org.eclipse.swt.widgets.Display.getDefault(Display.java:1545)
+	at com.microsoft.copilot.eclipse.ui.utils.SwtUtils.invokeOnDisplayThread(SwtUtils.java:61)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService.ensureRealm(ChatBaseService.java:106)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.disposeAllSideEffects(ModelService.java:731)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.dispose(ModelService.java:758)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager.dispose(ChatServiceManager.java:161)
+	at com.microsoft.copilot.eclipse.ui.CopilotUi.stop(CopilotUi.java:213)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:896)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:1)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl.stop(BundleContextImpl.java:888)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle.stopWorker0(EquinoxBundle.java:1080)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$EquinoxModule.stopWorker(EquinoxBundle.java:399)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.decStartLevel(ModuleContainer.java:2153)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.doContainerStartLevel(ModuleContainer.java:2022)
+	at org.eclipse.osgi.container.SystemModule.stopWorker(SystemModule.java:281)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule.stopWorker(EquinoxBundle.java:225)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.SystemModule.stop(SystemModule.java:212)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule$1.run(EquinoxBundle.java:244)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+!SESSION 2026-02-20 17:57:38.392 -----------------------------------------------
+eclipse.buildId=4.36.0.20250605-1300
+java.version=21.0.7
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=macosx, ARCH=aarch64, WS=cocoa, NL=it_IT
+Framework arguments:  -product org.eclipse.epp.package.jee.product -keyring /Users/riccardo.fedel/.eclipse_keyring
+Command-line arguments:  -os macosx -ws cocoa -arch aarch64 -product org.eclipse.epp.package.jee.product -keyring /Users/riccardo.fedel/.eclipse_keyring -data /Users/riccardo.fedel/Library/Application Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system 2
+
+!ENTRY ch.qos.logback.classic 1 0 2026-02-20 17:57:41.273
+!MESSAGE Activated before the state location was initialized. Retry after the state location is initialized.
+
+!ENTRY ch.qos.logback.classic 1 0 2026-02-20 17:57:42.692
+!MESSAGE Logback config file: /Users/riccardo.fedel/Library/Application Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system 2/.metadata/.plugins/org.eclipse.m2e.logback/logback.2.7.100.20250418-1315.xml
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 17:57:48.471
+!MESSAGE [Info] Starting language server with binary lsp agent.
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 17:57:48.474
+!MESSAGE [Info] Found native binary in fragment bundle: com.microsoft.copilot.eclipse.core.agent.macosx.aarch64
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-20 17:57:49.965
+!MESSAGE [Info] Lsp agent started successfully.
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:51.791
+!MESSAGE [Info]	[lsp] GitHub Copilot Language Server 1.401.0 initialized
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:51.810
+!MESSAGE [Info]	[default] Policy watcher started for GitHub Copilot Plugin
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:51.890
+!MESSAGE [Info]	[certificates] Removed 3 expired certificates
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:52.244
+!MESSAGE [Info]	[GithubAvailableEmbeddingTypes] Got embeddings. Primary: metis-1024-I16-Binary. Deprecated: 
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:52.717
+!MESSAGE [Info]	[AutoModelService] Auto model cache cleared due to token update
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:52.718
+!MESSAGE [Info]	[CopilotMCP] MCP state changed from false to true
+
+!ENTRY org.eclipse.lsp4e 1 0 2026-02-20 17:57:52.718
+!MESSAGE [Info]	[Semantic Search] Semantic search is disabled { reason: 'watchedFiles capability is not available' }
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-21 09:24:42.786
+!MESSAGE [Info] Document is null for editor: ExcelExportService.java
+
+!ENTRY com.microsoft.copilot.eclipse 1 0 2026-02-21 09:24:42.787
+!MESSAGE [Info] Completion handler is refreshed for the document: file:///Users/riccardo.fedel/Library/Application%20Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system%202/backend/src/main/java/it/grandimolini/aiamanagement/service/ExcelExportService.java
+
+!ENTRY com.microsoft.copilot.eclipse.ui 4 0 2026-02-21 09:24:43.141
+!MESSAGE FrameworkEvent ERROR
+!STACK 0
+org.osgi.framework.BundleException: Exception in com.microsoft.copilot.eclipse.ui.CopilotUi.stop() of bundle com.microsoft.copilot.eclipse.ui.
+	at org.eclipse.osgi.internal.framework.BundleContextImpl.stop(BundleContextImpl.java:916)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle.stopWorker0(EquinoxBundle.java:1080)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$EquinoxModule.stopWorker(EquinoxBundle.java:399)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.decStartLevel(ModuleContainer.java:2153)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.doContainerStartLevel(ModuleContainer.java:2022)
+	at org.eclipse.osgi.container.SystemModule.stopWorker(SystemModule.java:281)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule.stopWorker(EquinoxBundle.java:225)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.SystemModule.stop(SystemModule.java:212)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule$1.run(EquinoxBundle.java:244)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+Caused by: org.eclipse.swt.SWTException: Invalid thread access
+	at org.eclipse.swt.SWT.error(SWT.java:4945)
+	at org.eclipse.swt.SWT.error(SWT.java:4860)
+	at org.eclipse.swt.SWT.error(SWT.java:4831)
+	at org.eclipse.swt.widgets.Display.error(Display.java:1211)
+	at org.eclipse.swt.widgets.Display.createDisplay(Display.java:962)
+	at org.eclipse.swt.widgets.Display.create(Display.java:946)
+	at org.eclipse.swt.graphics.Device.<init>(Device.java:132)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:800)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:791)
+	at org.eclipse.swt.widgets.Display.getDefault(Display.java:1545)
+	at com.microsoft.copilot.eclipse.ui.utils.SwtUtils.invokeOnDisplayThread(SwtUtils.java:61)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService.ensureRealm(ChatBaseService.java:106)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.disposeAllSideEffects(ModelService.java:731)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.dispose(ModelService.java:758)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager.dispose(ChatServiceManager.java:161)
+	at com.microsoft.copilot.eclipse.ui.CopilotUi.stop(CopilotUi.java:213)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:896)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:1)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl.stop(BundleContextImpl.java:888)
+	... 13 more
+Root exception:
+org.eclipse.swt.SWTException: Invalid thread access
+	at org.eclipse.swt.SWT.error(SWT.java:4945)
+	at org.eclipse.swt.SWT.error(SWT.java:4860)
+	at org.eclipse.swt.SWT.error(SWT.java:4831)
+	at org.eclipse.swt.widgets.Display.error(Display.java:1211)
+	at org.eclipse.swt.widgets.Display.createDisplay(Display.java:962)
+	at org.eclipse.swt.widgets.Display.create(Display.java:946)
+	at org.eclipse.swt.graphics.Device.<init>(Device.java:132)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:800)
+	at org.eclipse.swt.widgets.Display.<init>(Display.java:791)
+	at org.eclipse.swt.widgets.Display.getDefault(Display.java:1545)
+	at com.microsoft.copilot.eclipse.ui.utils.SwtUtils.invokeOnDisplayThread(SwtUtils.java:61)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatBaseService.ensureRealm(ChatBaseService.java:106)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.disposeAllSideEffects(ModelService.java:731)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ModelService.dispose(ModelService.java:758)
+	at com.microsoft.copilot.eclipse.ui.chat.services.ChatServiceManager.dispose(ChatServiceManager.java:161)
+	at com.microsoft.copilot.eclipse.ui.CopilotUi.stop(CopilotUi.java:213)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:896)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl$3.run(BundleContextImpl.java:1)
+	at java.base/java.security.AccessController.doPrivileged(AccessController.java:571)
+	at org.eclipse.osgi.internal.framework.BundleContextImpl.stop(BundleContextImpl.java:888)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle.stopWorker0(EquinoxBundle.java:1080)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$EquinoxModule.stopWorker(EquinoxBundle.java:399)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.decStartLevel(ModuleContainer.java:2153)
+	at org.eclipse.osgi.container.ModuleContainer$ContainerStartLevel.doContainerStartLevel(ModuleContainer.java:2022)
+	at org.eclipse.osgi.container.SystemModule.stopWorker(SystemModule.java:281)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule.stopWorker(EquinoxBundle.java:225)
+	at org.eclipse.osgi.container.Module.doStop(Module.java:699)
+	at org.eclipse.osgi.container.Module.stop(Module.java:557)
+	at org.eclipse.osgi.container.SystemModule.stop(SystemModule.java:212)
+	at org.eclipse.osgi.internal.framework.EquinoxBundle$SystemBundle$EquinoxSystemModule$1.run(EquinoxBundle.java:244)
+	at java.base/java.lang.Thread.run(Thread.java:1583)

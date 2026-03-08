@@ -1,0 +1,467 @@
+<div class="punti-container">
+
+  <!-- HEADER ───────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>🔬 Punti di Monitoraggio (PMC)</h1>
+      <span class="count-badge">{{ puntiFiltrati().length }} punti</span>
+    </div>
+    @if (isResponsabileOrAdmin()) {
+      <button class="btn-primary" (click)="openNewPunto()">+ Nuovo Punto</button>
+    }
+  </div>
+
+  <!-- FILTRI ───────────────────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <input
+      class="search-input"
+      type="text"
+      placeholder="🔍 Cerca codice, descrizione…"
+      [value]="searchText()"
+      (input)="searchText.set($any($event.target).value)" />
+
+    <select
+      class="filter-select"
+      [value]="filterStabilimento() ?? ''"
+      (change)="filterStabilimento.set($any($event.target).value ? +$any($event.target).value : null)">
+      <option value="">Tutti gli stabilimenti</option>
+      @for (st of stabilimenti(); track st.id) {
+        <option [value]="st.id">{{ st.nome }}</option>
+      }
+    </select>
+
+    <select
+      class="filter-select"
+      [value]="filterTipo() ?? ''"
+      (change)="filterTipo.set($any($event.target).value || null)">
+      <option value="">Tutti i tipi</option>
+      @for (tipo of tipiMonitoraggio; track tipo) {
+        <option [value]="tipo">{{ TIPO_ICON[tipo] }} {{ TIPO_LABEL[tipo] }}</option>
+      }
+    </select>
+
+    <label class="toggle-label">
+      <input type="checkbox" [checked]="filterSoloAttivi()" (change)="filterSoloAttivi.set($any($event.target).checked)" />
+      Solo attivi
+    </label>
+  </div>
+
+  <!-- ERRORE ───────────────────────────────────────────────────────── -->
+  @if (errorMsg()) {
+    <div class="alert-error">
+      ⚠️ {{ errorMsg() }}
+      <button class="btn-close-alert" (click)="errorMsg.set(null)">✕</button>
+    </div>
+  }
+
+  <!-- LOADING ──────────────────────────────────────────────────────── -->
+  @if (loading()) {
+    <div class="loading-state">Caricamento in corso…</div>
+  }
+
+  <!-- STATO VUOTO ──────────────────────────────────────────────────── -->
+  @if (!loading() && puntiFiltrati().length === 0) {
+    <div class="empty-state">
+      <div class="empty-icon">🔬</div>
+      <p>Nessun punto di monitoraggio trovato.</p>
+      @if (isResponsabileOrAdmin()) {
+        <button class="btn-primary" (click)="openNewPunto()">Aggiungi il primo punto</button>
+      }
+    </div>
+  }
+
+  <!-- GRUPPI PER TIPO ──────────────────────────────────────────────── -->
+  @for (tipo of getGruppiKeys(); track tipo) {
+    <div class="tipo-gruppo">
+      <div class="tipo-header">
+        <span class="tipo-icon">{{ tipoIcon(tipo) }}</span>
+        <span class="tipo-title">{{ tipoLabel(tipo) }}</span>
+        <span class="tipo-count">{{ getPuntiByTipo(tipo).length }}</span>
+      </div>
+
+      <div class="punti-list">
+        @for (punto of getPuntiByTipo(tipo); track punto.id) {
+          <div class="punto-card" [class.inactive]="!punto.attivo">
+
+            <!-- CARD HEADER ──────────────────────────────────────────── -->
+            <div class="punto-header" (click)="toggleExpand(punto.id!)">
+              <div class="punto-info">
+                <span class="punto-codice">{{ punto.codice }}</span>
+                @if (punto.puntoEmissione) {
+                  <span class="punto-emissione">{{ punto.puntoEmissione }}</span>
+                }
+                <span class="punto-desc">{{ punto.descrizione }}</span>
+                @if (!punto.attivo) {
+                  <span class="badge-inattivo">Inattivo</span>
+                }
+              </div>
+
+              <div class="punto-meta">
+                @if (punto.frequenza) {
+                  <span class="meta-chip">⏱ {{ freqLabel(punto.frequenza) }}</span>
+                }
+                @if (punto.prossimaScadenza) {
+                  <span class="meta-chip" [class.chip-scaduto]="isScaduto(punto.prossimaScadenza)" [class.chip-imminente]="isImminente(punto.prossimaScadenza)">
+                    📅 {{ punto.prossimaScadenza | date:'dd/MM/yyyy' }}
+                  </span>
+                }
+                @if (punto.stabilimentoNome) {
+                  <span class="meta-chip meta-stabilimento">🏭 {{ punto.stabilimentoNome }}</span>
+                }
+                <span class="param-count">
+                  {{ punto.parametri?.length ?? 0 }} param.
+                </span>
+                <span class="expand-icon" [class.rotated]="isExpanded(punto.id!)">▼</span>
+              </div>
+
+              @if (isResponsabileOrAdmin()) {
+                <div class="punto-actions" (click)="$event.stopPropagation()">
+                  <button class="btn-icon" title="Modifica" (click)="editPunto(punto)">✏️</button>
+                  <button class="btn-icon btn-danger" title="Elimina" (click)="requestDeletePunto(punto.id!)">🗑️</button>
+                </div>
+              }
+            </div>
+
+            <!-- DETTAGLIO ESPANSO ──────────────────────────────────────── -->
+            @if (isExpanded(punto.id!)) {
+              <div class="punto-detail">
+
+                <!-- Info aggiuntive ───────────────────────────────────── -->
+                <div class="detail-meta-grid">
+                  @if (punto.laboratorio) {
+                    <div class="dm-item"><span class="dm-label">Laboratorio</span><span>{{ punto.laboratorio }}</span></div>
+                  }
+                  @if (punto.metodica) {
+                    <div class="dm-item"><span class="dm-label">Metodica</span><span>{{ punto.metodica }}</span></div>
+                  }
+                  @if (punto.normativaRiferimento) {
+                    <div class="dm-item"><span class="dm-label">Normativa</span><span>{{ punto.normativaRiferimento }}</span></div>
+                  }
+                  @if (punto.matricola) {
+                    <div class="dm-item"><span class="dm-label">Matricola</span><span>{{ punto.matricola }}</span></div>
+                  }
+                </div>
+
+                <!-- ANAGRAFICA CAMINO ──────────────────────────────────── -->
+                @if (punto.anagraficaCamino) {
+                  <div class="anagrafica-card">
+                    <div class="anagrafica-card-header">
+                      <span class="anagrafica-card-title">🏭 Scheda tecnica camino</span>
+                      <span class="anagrafica-sigla-badge">{{ punto.anagraficaCamino.sigla }}</span>
+                    </div>
+                    <div class="anagrafica-grid">
+                      @if (punto.anagraficaCamino.origine) {
+                        <div class="ag-item ag-full"><span class="ag-lbl">Origine</span><span>{{ punto.anagraficaCamino.origine }}</span></div>
+                      }
+                      @if (punto.anagraficaCamino.portataNomc3h) {
+                        <div class="ag-item"><span class="ag-lbl">Portata</span><span>{{ punto.anagraficaCamino.portataNomc3h }} Nm³/h</span></div>
+                      }
+                      @if (punto.anagraficaCamino.sezioneM2) {
+                        <div class="ag-item"><span class="ag-lbl">Sezione</span><span>{{ punto.anagraficaCamino.sezioneM2 }} m²</span></div>
+                      }
+                      @if (punto.anagraficaCamino.velocitaMs) {
+                        <div class="ag-item"><span class="ag-lbl">Velocità</span><span>{{ punto.anagraficaCamino.velocitaMs }} m/s</span></div>
+                      }
+                      <div class="ag-item">
+                        <span class="ag-lbl">Temperatura</span>
+                        <span>{{ punto.anagraficaCamino.temperaturaAmbiente ? 'ambiente' : (punto.anagraficaCamino.temperaturaC + ' °C') }}</span>
+                      </div>
+                      @if (punto.anagraficaCamino.altezzaM) {
+                        <div class="ag-item"><span class="ag-lbl">Altezza</span><span>{{ punto.anagraficaCamino.altezzaM }} m</span></div>
+                      }
+                      @if (punto.anagraficaCamino.durataHGiorno) {
+                        <div class="ag-item"><span class="ag-lbl">Durata</span><span>{{ punto.anagraficaCamino.durataHGiorno }} h/g · {{ punto.anagraficaCamino.durataGAnno }} g/a</span></div>
+                      }
+                      @if (punto.anagraficaCamino.impiantoAbbattimento) {
+                        <div class="ag-item ag-full"><span class="ag-lbl">Abbattimento</span><span>{{ punto.anagraficaCamino.impiantoAbbattimento }}</span></div>
+                      }
+                      @if (punto.anagraficaCamino.note) {
+                        <div class="ag-item ag-full ag-note"><span>📌 {{ punto.anagraficaCamino.note }}</span></div>
+                      }
+                    </div>
+                  </div>
+                }
+
+                <!-- PARAMETRI ────────────────────────────────────────── -->
+                <div class="parametri-section">
+                  <div class="parametri-header">
+                    <span class="parametri-title">Parametri monitorati</span>
+                    @if (isResponsabileOrAdmin()) {
+                      <button class="btn-sm btn-primary" (click)="openNewParam(punto.id!)">+ Parametro</button>
+                    }
+                  </div>
+
+                  @if ((punto.parametri?.length ?? 0) === 0 && editingParamForPuntoId() !== punto.id) {
+                    <div class="parametri-empty">Nessun parametro configurato.</div>
+                  }
+
+                  @if ((punto.parametri?.length ?? 0) > 0) {
+                    <table class="parametri-table">
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>Codice</th>
+                          <th>Unità</th>
+                          <th>Limite</th>
+                          <th>Frequenza</th>
+                          <th>Metodo</th>
+                          @if (isResponsabileOrAdmin()) { <th class="th-actions">Azioni</th> }
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (param of punto.parametri; track param.id) {
+                          @if (editingParamId() === param.id && editingParamForPuntoId() === punto.id) {
+                            <!-- RIGA EDITING ──────────────────────────── -->
+                            <tr class="row-editing">
+                              <td><input class="inline-input" type="text" [value]="paramForm().nome ?? ''" (input)="patchParamForm('nome', $any($event.target).value)" placeholder="Nome *" /></td>
+                              <td><input class="inline-input" type="text" [value]="paramForm().codice ?? ''" (input)="patchParamForm('codice', $any($event.target).value)" placeholder="Codice" /></td>
+                              <td><input class="inline-input" type="text" [value]="paramForm().unitaMisura ?? ''" (input)="patchParamForm('unitaMisura', $any($event.target).value)" placeholder="mg/l" /></td>
+                              <td>
+                                <div class="limite-inline">
+                                  <input class="inline-input inline-num" type="number" [value]="paramForm().limiteValore ?? ''" (input)="patchParamForm('limiteValore', +$any($event.target).value || undefined)" placeholder="Val." />
+                                  <input class="inline-input" type="text" [value]="paramForm().limiteUnita ?? ''" (input)="patchParamForm('limiteUnita', $any($event.target).value)" placeholder="mg/l" />
+                                </div>
+                              </td>
+                              <td>
+                                <select class="inline-input" [value]="paramForm().frequenza ?? ''" (change)="patchParamForm('frequenza', $any($event.target).value || undefined)">
+                                  <option value="">—</option>
+                                  @for (f of frequenze; track f) { <option [value]="f">{{ freqLabel($any(f)) }}</option> }
+                                </select>
+                              </td>
+                              <td><input class="inline-input" type="text" [value]="paramForm().metodoAnalisi ?? ''" (input)="patchParamForm('metodoAnalisi', $any($event.target).value)" placeholder="Metodo" /></td>
+                              <td class="td-actions">
+                                <button class="btn-sm btn-primary" (click)="saveParam(punto.id!)">✓</button>
+                                <button class="btn-sm" (click)="closeParamForm()">✕</button>
+                              </td>
+                            </tr>
+                          } @else {
+                            <!-- RIGA VISUALIZZAZIONE ────────────────────── -->
+                            <tr [class.row-inactive]="!param.attivo">
+                              <td>{{ param.nome }}</td>
+                              <td class="td-mono">{{ param.codice ?? '—' }}</td>
+                              <td>{{ param.unitaMisura ?? '—' }}</td>
+                              <td>
+                                @if (param.limiteValore != null) {
+                                  <span class="limite-badge">≤ {{ param.limiteValore }} {{ param.limiteUnita ?? '' }}</span>
+                                } @else {
+                                  <span class="text-muted">—</span>
+                                }
+                              </td>
+                              <td>{{ freqLabel(param.frequenza) }}</td>
+                              <td class="td-small">{{ param.metodoAnalisi ?? '—' }}</td>
+                              @if (isResponsabileOrAdmin()) {
+                                <td class="td-actions">
+                                  <button class="btn-icon" (click)="editParam(punto.id!, param)">✏️</button>
+                                  <button class="btn-icon btn-danger" (click)="requestDeleteParam(punto.id!, param.id!)">🗑️</button>
+                                </td>
+                              }
+                            </tr>
+                          }
+                        }
+                      </tbody>
+                    </table>
+                  }
+
+                  <!-- FORM NUOVO PARAMETRO ────────────────────────────── -->
+                  @if (editingParamForPuntoId() === punto.id && editingParamId() === null) {
+                    <div class="param-new-form">
+                      <h4>Nuovo parametro</h4>
+                      <div class="param-form-grid">
+                        <div class="form-field">
+                          <label>Nome *</label>
+                          <input type="text" [value]="paramForm().nome ?? ''" (input)="patchParamForm('nome', $any($event.target).value)" placeholder="es. pH, BOD5, SO2…" />
+                        </div>
+                        <div class="form-field">
+                          <label>Codice</label>
+                          <input type="text" [value]="paramForm().codice ?? ''" (input)="patchParamForm('codice', $any($event.target).value)" placeholder="es. BOD5" />
+                        </div>
+                        <div class="form-field">
+                          <label>Unità di misura</label>
+                          <input type="text" [value]="paramForm().unitaMisura ?? ''" (input)="patchParamForm('unitaMisura', $any($event.target).value)" placeholder="mg/l, dB, µg/Nm³…" />
+                        </div>
+                        <div class="form-field">
+                          <label>Limite valore</label>
+                          <input type="number" [value]="paramForm().limiteValore ?? ''" (input)="patchParamForm('limiteValore', +$any($event.target).value || undefined)" step="any" />
+                        </div>
+                        <div class="form-field">
+                          <label>Unità limite</label>
+                          <input type="text" [value]="paramForm().limiteUnita ?? ''" (input)="patchParamForm('limiteUnita', $any($event.target).value)" placeholder="mg/l" />
+                        </div>
+                        <div class="form-field">
+                          <label>Normativa limite</label>
+                          <input type="text" [value]="paramForm().limiteRiferimento ?? ''" (input)="patchParamForm('limiteRiferimento', $any($event.target).value)" placeholder="es. Tab. 3 All. 5 D.lgs 152/06" />
+                        </div>
+                        <div class="form-field">
+                          <label>Frequenza</label>
+                          <select [value]="paramForm().frequenza ?? ''" (change)="patchParamForm('frequenza', $any($event.target).value || undefined)">
+                            <option value="">— Non definita —</option>
+                            @for (f of frequenze; track f) { <option [value]="f">{{ freqLabel($any(f)) }}</option> }
+                          </select>
+                        </div>
+                        <div class="form-field">
+                          <label>Metodo analisi</label>
+                          <input type="text" [value]="paramForm().metodoAnalisi ?? ''" (input)="patchParamForm('metodoAnalisi', $any($event.target).value)" placeholder="es. EPA Method 8011" />
+                        </div>
+                        <div class="form-field form-field-full">
+                          <label>Note</label>
+                          <textarea rows="2" [value]="paramForm().note ?? ''" (input)="patchParamForm('note', $any($event.target).value)"></textarea>
+                        </div>
+                      </div>
+                      <div class="form-footer">
+                        <button class="btn-primary" (click)="saveParam(punto.id!)" [disabled]="!paramForm().nome">Salva parametro</button>
+                        <button class="btn-secondary" (click)="closeParamForm()">Annulla</button>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+</div>
+
+<!-- ══════════════════════ MODAL: CREA / MODIFICA PUNTO ══════════════════════ -->
+@if (showPuntoForm()) {
+  <div class="modal-overlay" (click)="closePuntoForm()">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingPuntoId() ? 'Modifica Punto' : 'Nuovo Punto di Monitoraggio' }}</h2>
+        <button class="btn-close" (click)="closePuntoForm()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <div class="form-grid">
+
+          <div class="form-field">
+            <label>Stabilimento *</label>
+            <select [value]="puntoForm().stabilimentoId ?? ''" (change)="patchPuntoForm('stabilimentoId', +$any($event.target).value || undefined)">
+              <option value="">— Seleziona —</option>
+              @for (st of stabilimenti(); track st.id) {
+                <option [value]="st.id">{{ st.nome }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Tipo monitoraggio</label>
+            <select [value]="puntoForm().tipoMonitoraggio ?? ''" (change)="patchPuntoForm('tipoMonitoraggio', $any($event.target).value || undefined)">
+              <option value="">— Seleziona —</option>
+              @for (tipo of tipiMonitoraggio; track tipo) {
+                <option [value]="tipo">{{ TIPO_ICON[tipo] }} {{ TIPO_LABEL[tipo] }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Codice *</label>
+            <input type="text" [value]="puntoForm().codice ?? ''" (input)="patchPuntoForm('codice', $any($event.target).value)" placeholder="es. S1, E1, P1…" />
+          </div>
+
+          <div class="form-field">
+            <label>Punto emissione</label>
+            <input type="text" [value]="puntoForm().puntoEmissione ?? ''" (input)="patchPuntoForm('puntoEmissione', $any($event.target).value)" placeholder="es. Scarico S1" />
+          </div>
+
+          <div class="form-field form-field-full">
+            <label>Descrizione *</label>
+            <input type="text" [value]="puntoForm().descrizione ?? ''" (input)="patchPuntoForm('descrizione', $any($event.target).value)" placeholder="Descrizione del punto di monitoraggio" />
+          </div>
+
+          <div class="form-field">
+            <label>Frequenza</label>
+            <select [value]="puntoForm().frequenza ?? ''" (change)="patchPuntoForm('frequenza', $any($event.target).value || undefined)">
+              <option value="">— Non definita —</option>
+              @for (f of frequenze; track f) { <option [value]="f">{{ freqLabel($any(f)) }}</option> }
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label>Prossima scadenza</label>
+            <input type="date" [value]="puntoForm().prossimaScadenza ?? ''" (input)="patchPuntoForm('prossimaScadenza', $any($event.target).value || undefined)" />
+          </div>
+
+          <div class="form-field">
+            <label>Laboratorio</label>
+            <input type="text" [value]="puntoForm().laboratorio ?? ''" (input)="patchPuntoForm('laboratorio', $any($event.target).value)" placeholder="Nome laboratorio" />
+          </div>
+
+          <div class="form-field">
+            <label>Metodica</label>
+            <input type="text" [value]="puntoForm().metodica ?? ''" (input)="patchPuntoForm('metodica', $any($event.target).value)" placeholder="Riferimento metodica analitica" />
+          </div>
+
+          <div class="form-field">
+            <label>Normativa di riferimento</label>
+            <input type="text" [value]="puntoForm().normativaRiferimento ?? ''" (input)="patchPuntoForm('normativaRiferimento', $any($event.target).value)" placeholder="es. D.lgs 152/06, AIA 2024" />
+          </div>
+
+          <div class="form-field">
+            <label>Matricola / N° contatore</label>
+            <input type="text" [value]="puntoForm().matricola ?? ''" (input)="patchPuntoForm('matricola', $any($event.target).value)" placeholder="Matricola strumento" />
+          </div>
+
+          @if (puntoForm().tipoMonitoraggio === TipoMonitoraggio.EMISSIONI_ATMOSFERA) {
+            <div class="form-field form-field-full">
+              <label>Anagrafica camino collegata</label>
+              <select [value]="puntoForm().anagraficaCaminoId ?? ''"
+                      (change)="patchPuntoForm('anagraficaCaminoId', $any($event.target).value ? +$any($event.target).value : null)">
+                <option value="">— nessuna —</option>
+                @for (c of caminiPerForm(); track c.id) {
+                  <option [value]="c.id">{{ c.sigla }} – {{ c.origine ?? c.faseProcesso }}</option>
+                }
+              </select>
+            </div>
+          }
+
+          <div class="form-field form-check">
+            <label>
+              <input type="checkbox" [checked]="puntoForm().attivo ?? true" (change)="patchPuntoForm('attivo', $any($event.target).checked)" />
+              Punto attivo
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-primary" (click)="savePunto()" [disabled]="!puntoForm().codice || !puntoForm().descrizione || !puntoForm().stabilimentoId">
+          {{ editingPuntoId() ? 'Salva modifiche' : 'Crea punto' }}
+        </button>
+        <button class="btn-secondary" (click)="closePuntoForm()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════ MODALE CONFERMA ELIMINAZIONE PUNTO ══════════════════════ -->
+@if (confirmDeletePuntoId()) {
+  <div class="modal-overlay" (click)="cancelDeletePunto()">
+    <div class="modal-confirm" (click)="$event.stopPropagation()">
+      <h3>⚠️ Eliminare il punto di monitoraggio?</h3>
+      <p>L'operazione rimuoverà anche tutti i parametri associati. Non può essere annullata.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDeletePunto()">Elimina</button>
+        <button class="btn-secondary" (click)="cancelDeletePunto()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════════════════ MODALE CONFERMA ELIMINAZIONE PARAMETRO ══════════════════════ -->
+@if (confirmDeleteParamId()) {
+  <div class="modal-overlay" (click)="cancelDeleteParam()">
+    <div class="modal-confirm" (click)="$event.stopPropagation()">
+      <h3>⚠️ Eliminare il parametro?</h3>
+      <p>Il parametro verrà rimosso definitivamente.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDeleteParam()">Elimina</button>
+        <button class="btn-secondary" (click)="cancelDeleteParam()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}

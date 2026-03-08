@@ -1,0 +1,290 @@
+<div class="produzione-container">
+
+  <!-- HEADER ──────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>📊 Produzione e Consumi Mensili</h1>
+    </div>
+    @if (isResponsabileOrAdmin()) {
+      <button class="btn-primary" (click)="showNewModal.set(true)">+ Nuovo Registro</button>
+    }
+  </div>
+
+  <!-- FILTRI ──────────────────────────────────────────────────────── -->
+  <div class="filter-bar">
+    <select class="filter-select"
+      [value]="filterStabilimento() ?? ''"
+      (change)="filterStabilimento.set($any($event.target).value ? +$any($event.target).value : null); onFiltriChange()">
+      <option value="">Tutti gli stabilimenti</option>
+      @for (st of stabilimenti(); track st.id) {
+        <option [value]="st.id">{{ st.nome }}</option>
+      }
+    </select>
+
+    <select class="filter-select"
+      [value]="filterAnno()"
+      (change)="filterAnno.set(+$any($event.target).value); onFiltriChange()">
+      @for (a of anniRange(); track a) {
+        <option [value]="a">{{ a }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- ALERT ───────────────────────────────────────────────────────── -->
+  @if (errorMsg()) {
+    <div class="alert-error">
+      ⚠️ {{ errorMsg() }}
+      <button class="btn-close-alert" (click)="errorMsg.set(null)">✕</button>
+    </div>
+  }
+
+  @if (loading()) {
+    <div class="loading-state">Caricamento…</div>
+  }
+
+  <!-- GRIGLIA ANNUALE ─────────────────────────────────────────────── -->
+  @if (!loading()) {
+    <div class="annual-grid-section">
+      <div class="annual-grid-header">
+        <span class="grid-title">{{ filterAnno() }} — panoramica mensile</span>
+        <span class="grid-legend">
+          <span class="legend-dot dot-bozza"></span> Bozza
+          <span class="legend-dot dot-inviato"></span> Inviato
+          <span class="legend-dot dot-approvato"></span> Approvato
+          <span class="legend-dot dot-vuoto"></span> Non compilato
+        </span>
+      </div>
+
+      <div class="month-grid">
+        @for (mese of MESI_NUM; track mese) {
+          @let reg = gridData().get(mese);
+          <div class="month-cell"
+            [class.has-data]="!!reg"
+            [class.active]="reg?.id === activeRegistroId()"
+            [class.cell-bozza]="reg?.stato === 'BOZZA'"
+            [class.cell-inviato]="reg?.stato === 'INVIATO'"
+            [class.cell-approvato]="reg?.stato === 'APPROVATO'"
+            [class.cell-rettificato]="reg?.stato === 'RETTIFICATO'"
+            (click)="selectMese(mese)">
+            <div class="month-name">{{ meseLabel(mese) }}</div>
+            @if (reg) {
+              <div class="month-voci">{{ reg.voci?.length ?? 0 }} voci</div>
+              <div class="month-stato">{{ statoLabel(reg.stato) }}</div>
+            } @else {
+              <div class="month-empty">+</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- DETTAGLIO REGISTRO ────────────────────────────────────────── -->
+    @if (activeRegistro()) {
+      @let reg = activeRegistro()!;
+      <div class="registro-detail">
+
+        <!-- Header dettaglio -->
+        <div class="registro-detail-header">
+          <div class="rd-title">
+            <span>{{ meseLabel(reg.mese) }} {{ reg.anno }}</span>
+            @if (reg.stabilimentoNome) { <span class="rd-stabilimento">🏭 {{ reg.stabilimentoNome }}</span> }
+            <span class="stato-badge" [class]="statoClass(reg.stato)">{{ statoLabel(reg.stato) }}</span>
+          </div>
+          <div class="rd-actions">
+            @if (isResponsabileOrAdmin()) {
+              <button class="btn-sm" title="Applica template standard GMI" (click)="applyTemplate()">📋 Template</button>
+              @if (reg.stato === StatoRegistro.BOZZA) {
+                <button class="btn-sm btn-invia" (click)="cambiaStato(reg.id!, StatoRegistro.INVIATO)">📤 Invia</button>
+              }
+              @if (reg.stato === StatoRegistro.INVIATO) {
+                <button class="btn-sm btn-approva" (click)="cambiaStato(reg.id!, StatoRegistro.APPROVATO)">✅ Approva</button>
+              }
+              <button class="btn-sm btn-primary" [disabled]="!isDirty() || savingBatch()" (click)="saveBatch()">
+                {{ savingBatch() ? 'Salvataggio…' : '💾 Salva' }}
+              </button>
+              <button class="btn-sm btn-danger" (click)="requestDelete(reg.id!)">🗑️</button>
+            }
+          </div>
+        </div>
+
+        <!-- Tabelle per categoria -->
+        @if (editingVoci().length === 0) {
+          <div class="voci-empty">
+            Nessuna voce. Usa "📋 Template" per aggiungere le voci standard GMI, oppure aggiungi voci manualmente.
+          </div>
+        }
+
+        @for (cat of getCategorieKeys(); track cat) {
+          <div class="categoria-block">
+            <div class="cat-header">
+              <span class="cat-icon">{{ CATEGORIA_ICON[cat] }}</span>
+              <span class="cat-label">{{ CATEGORIA_LABEL[cat] }}</span>
+              <span class="cat-total">
+                Totale: {{ totaleCategoria().get(cat) | number:'1.0-2' }}
+                @if (getVociByCategoria(cat)[0]?.unitaMisura) {
+                  {{ getVociByCategoria(cat)[0].unitaMisura }}
+                }
+              </span>
+              @if (isResponsabileOrAdmin()) {
+                <button class="btn-add-voce" (click)="addVoceCustom(cat)">+ Voce</button>
+              }
+            </div>
+
+            <table class="voci-table">
+              <thead>
+                <tr>
+                  <th>Descrizione</th>
+                  <th>Codice</th>
+                  <th class="th-num">Quantità</th>
+                  <th>U.M.</th>
+                  <th class="th-num">Anno prec.</th>
+                  <th class="th-num">Δ%</th>
+                  <th>Note</th>
+                  @if (isResponsabileOrAdmin()) { <th class="th-actions"></th> }
+                </tr>
+              </thead>
+              <tbody>
+                @for (i of getVociIndices(cat); track i) {
+                  @let voce = editingVoci()[i];
+                  <tr>
+                    <td>
+                      <input class="cell-input" type="text"
+                        [value]="voce.descrizione"
+                        (change)="patchVoce(i, 'descrizione', $any($event.target).value)" />
+                    </td>
+                    <td>
+                      <input class="cell-input cell-code" type="text"
+                        [value]="voce.codice ?? ''"
+                        (change)="patchVoce(i, 'codice', $any($event.target).value)" />
+                    </td>
+                    <td>
+                      <input class="cell-input cell-num" type="number"
+                        [value]="voce.quantita ?? ''"
+                        (input)="patchVoce(i, 'quantita', $any($event.target).value ? +$any($event.target).value : undefined)"
+                        step="any" min="0" />
+                    </td>
+                    <td>
+                      <input class="cell-input cell-unit" type="text"
+                        [value]="voce.unitaMisura ?? ''"
+                        (change)="patchVoce(i, 'unitaMisura', $any($event.target).value)" />
+                    </td>
+                    <td>
+                      <input class="cell-input cell-num" type="number"
+                        [value]="voce.quantitaAnnoPrecedente ?? ''"
+                        (input)="patchVoce(i, 'quantitaAnnoPrecedente', $any($event.target).value ? +$any($event.target).value : undefined)"
+                        step="any" min="0" />
+                    </td>
+                    <td class="td-var">
+                      @let v = variazione(voce.quantita, voce.quantitaAnnoPrecedente);
+                      @if (v !== null) {
+                        <span class="var-badge" [class.var-up]="v > 0" [class.var-down]="v < 0">
+                          {{ v > 0 ? '+' : '' }}{{ v }}%
+                        </span>
+                      } @else {
+                        <span class="text-muted">—</span>
+                      }
+                    </td>
+                    <td>
+                      <input class="cell-input" type="text"
+                        [value]="voce.note ?? ''"
+                        (change)="patchVoce(i, 'note', $any($event.target).value)" />
+                    </td>
+                    @if (isResponsabileOrAdmin()) {
+                      <td class="td-actions">
+                        <button class="btn-icon btn-danger" (click)="removeVoce(i)">✕</button>
+                      </td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+
+        <!-- Aggiungi categorie assenti -->
+        @if (isResponsabileOrAdmin()) {
+          <div class="add-categoria-row">
+            @for (cat of categorie; track cat) {
+              @if (!vociByCategoria().has(cat)) {
+                <button class="btn-add-cat" (click)="addVoceCustom(cat)">
+                  {{ CATEGORIA_ICON[cat] }} {{ CATEGORIA_LABEL[cat] }}
+                </button>
+              }
+            }
+          </div>
+        }
+
+      </div>
+    }
+  }
+
+</div>
+
+<!-- ══════════ MODAL NUOVO REGISTRO ══════════ -->
+@if (showNewModal()) {
+  <div class="modal-overlay" (click)="showNewModal.set(false)">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Nuovo Registro Mensile</h2>
+        <button class="btn-close" (click)="showNewModal.set(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Stabilimento *</label>
+            <select [value]="newRegistroForm().stabilimentoId ?? ''"
+              (change)="patchNewForm('stabilimentoId', +$any($event.target).value || undefined)">
+              <option value="">— Seleziona —</option>
+              @for (st of stabilimenti(); track st.id) {
+                <option [value]="st.id">{{ st.nome }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Anno *</label>
+            <select [value]="newRegistroForm().anno"
+              (change)="patchNewForm('anno', +$any($event.target).value)">
+              @for (a of anniRange(); track a) {
+                <option [value]="a">{{ a }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Mese *</label>
+            <select [value]="newRegistroForm().mese"
+              (change)="patchNewForm('mese', +$any($event.target).value)">
+              @for (m of MESI_NUM; track m) {
+                <option [value]="m">{{ meseLabel(m) }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field form-field-full">
+            <label>Note</label>
+            <textarea rows="2" [value]="newRegistroForm().note ?? ''"
+              (input)="patchNewForm('note', $any($event.target).value)"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary"
+          [disabled]="!newRegistroForm().stabilimentoId"
+          (click)="submitNewRegistro()">Crea registro</button>
+        <button class="btn-secondary" (click)="showNewModal.set(false)">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════ MODAL CONFERMA ELIMINAZIONE ══════════ -->
+@if (confirmDeleteId()) {
+  <div class="modal-overlay" (click)="cancelDelete()">
+    <div class="modal-confirm" (click)="$event.stopPropagation()">
+      <h3>⚠️ Eliminare il registro?</h3>
+      <p>Tutti i dati di produzione e consumi del mese verranno eliminati.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDelete()">Elimina</button>
+        <button class="btn-secondary" (click)="cancelDelete()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}

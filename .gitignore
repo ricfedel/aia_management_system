@@ -1,0 +1,6 @@
+# Variabili d'ambiente (mai su git)
+.env
+
+# JDK/Maven locali
+.jdk21/
+.maven/

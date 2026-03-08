@@ -1,0 +1,11 @@
+.main-content {
+  margin-left: var(--sidebar-width, 240px);
+  padding-top: 56px; /* altezza topbar */
+  min-height: 100vh;
+  background: #f5f7fa;
+  transition: margin-left 0.22s ease;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: 24px;
+  box-sizing: border-box;
+}

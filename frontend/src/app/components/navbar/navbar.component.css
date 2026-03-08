@@ -1,0 +1,220 @@
+/* ── Brand colors ─────────────────────────────────────────────────── */
+:host {
+  --gmi-primary:   #003366;
+  --gmi-secondary: #0066CC;
+  --gmi-accent:    #D4AF37;
+  --gmi-white:     #FFFFFF;
+  --sidebar-expanded:  240px;
+  --sidebar-collapsed:  64px;
+  --transition: 0.22s ease;
+}
+
+/* ── Sidebar shell ────────────────────────────────────────────────── */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: var(--sidebar-expanded);
+  background: linear-gradient(180deg, var(--gmi-primary) 0%, #002244 100%);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000;
+  transition: width var(--transition);
+  overflow: hidden;
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25);
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-collapsed);
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 10px 14px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  min-height: 68px;
+  flex-shrink: 0;
+}
+
+.logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.logo-badge {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  background: var(--gmi-accent);
+  color: var(--gmi-primary);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: -1px;
+  box-shadow: 0 2px 8px rgba(212,175,55,0.35);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.company-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--gmi-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--gmi-accent);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.toggle-btn {
+  background: rgba(255,255,255,0.08);
+  border: none;
+  color: rgba(255,255,255,0.7);
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 6px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+  flex-shrink: 0;
+}
+
+.toggle-btn:hover {
+  background: rgba(255,255,255,0.15);
+  color: var(--gmi-accent);
+}
+
+/* ── Navigation ───────────────────────────────────────────────────── */
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 8px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+.sidebar-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar-nav li { margin: 2px 8px; }
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px;
+  color: rgba(255,255,255,0.78);
+  text-decoration: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: background var(--transition), color var(--transition);
+  overflow: hidden;
+}
+
+.sidebar-nav a:hover {
+  background: rgba(255,255,255,0.1);
+  color: var(--gmi-white);
+}
+
+.sidebar-nav a.active {
+  background: rgba(212,175,55,0.18);
+  color: var(--gmi-accent);
+  box-shadow: inset 3px 0 0 var(--gmi-accent);
+}
+
+.nav-icon {
+  font-size: 18px;
+  min-width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Separatori di gruppo ─────────────────────────────────────────── */
+li.nav-group-separator {
+  margin: 8px 8px 2px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+li.nav-group-separator::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+
+li.nav-group-separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(255,255,255,0.12);
+}
+
+.nav-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: rgba(255,255,255,0.35);
+  white-space: nowrap;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ── Collapsed: centra icone, nasconde label gruppo ──────────────── */
+.sidebar.collapsed .sidebar-nav a   { justify-content: center; padding: 10px 0; }
+.sidebar.collapsed .sidebar-nav li  { margin: 2px 6px; }
+.sidebar.collapsed .sidebar-header  { justify-content: center; padding: 14px 0; }
+.sidebar.collapsed .toggle-btn      { margin: 0; }
+
+/* Quando collassato i separatori diventano solo una linea sottile */
+.sidebar.collapsed li.nav-group-separator {
+  margin: 6px 8px;
+}
+.sidebar.collapsed li.nav-group-separator::before,
+.sidebar.collapsed li.nav-group-separator::after {
+  flex: 1;
+}

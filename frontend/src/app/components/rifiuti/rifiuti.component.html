@@ -1,0 +1,510 @@
+<div class="rifiuti-container">
+
+  <!-- HEADER ─────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <h1>♻️ Gestione Rifiuti</h1>
+    <div class="header-controls">
+      <select class="filter-select"
+        [value]="filterStabilimento() ?? ''"
+        (change)="filterStabilimento.set($any($event.target).value ? +$any($event.target).value : null); onStabilimentoChange()">
+        <option value="">— Seleziona stabilimento —</option>
+        @for (st of stabilimenti(); track st.id) {
+          <option [value]="st.id">{{ st.nome }}</option>
+        }
+      </select>
+    </div>
+  </div>
+
+  @if (!filterStabilimento()) {
+    <div class="empty-state">
+      <div class="empty-icon">♻️</div>
+      <p>Seleziona uno stabilimento per gestire i rifiuti.</p>
+    </div>
+  }
+
+  @if (errorMsg()) {
+    <div class="alert-error">
+      ⚠️ {{ errorMsg() }}
+      <button class="btn-close-alert" (click)="errorMsg.set(null)">✕</button>
+    </div>
+  }
+
+  @if (filterStabilimento()) {
+
+    <!-- TAB NAV ──────────────────────────────────────────────────── -->
+    <div class="tab-nav">
+      <button class="tab-btn" [class.active]="activeTab() === 'anagrafica'" (click)="activeTab.set('anagrafica')">
+        📋 Codici CER ({{ codici().length }})
+      </button>
+      <button class="tab-btn" [class.active]="activeTab() === 'movimenti'" (click)="activeTab.set('movimenti')">
+        📦 Movimenti
+      </button>
+    </div>
+
+    <!-- ══════════ TAB ANAGRAFICA ══════════ -->
+    @if (activeTab() === 'anagrafica') {
+      <div class="tab-content">
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+          <input class="search-input" type="text" placeholder="🔍 Cerca CER, descrizione…"
+            [value]="searchCer()" (input)="searchCer.set($any($event.target).value)" />
+
+          <select class="filter-select-sm"
+            [value]="filterPericoloso() ?? ''"
+            (change)="filterPericoloso.set($any($event.target).value === '' ? null : $any($event.target).value === 'true')">
+            <option value="">Tutti</option>
+            <option value="false">Non pericolosi</option>
+            <option value="true">⚠️ Pericolosi</option>
+          </select>
+
+          @if (isResponsabileOrAdmin()) {
+            <button class="btn-secondary" (click)="importTemplate()" title="Aggiunge i codici CER standard per i mulini cerealicoli">📥 Template CER</button>
+            <button class="btn-primary" (click)="openNewCodice()">+ Nuovo CER</button>
+          }
+        </div>
+
+        @if (loading()) { <div class="loading-state">Caricamento…</div> }
+
+        @if (!loading() && codiciFiltered().length === 0) {
+          <div class="empty-state-sm">Nessun codice CER. Aggiungi il primo o usa "Template CER".</div>
+        }
+
+        <!-- Tabella codici CER -->
+        @if (codiciFiltered().length > 0) {
+          <table class="cer-table">
+            <thead>
+              <tr>
+                <th>Codice CER</th>
+                <th>Descrizione</th>
+                <th>Tipo</th>
+                <th>Stato fisico</th>
+                <th>U.M.</th>
+                <th>Cod. gestione</th>
+                <th>Destinatario</th>
+                <th>Stato</th>
+                @if (isResponsabileOrAdmin()) { <th class="th-actions">Azioni</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (c of codiciFiltered(); track c.id) {
+                <tr [class.row-selected]="selectedCodiceId() === c.id"
+                    [class.row-inactive]="!c.attivo"
+                    (click)="selectCodice(c.id!)">
+                  <td>
+                    <span class="cer-badge" [class]="cerClass(c)">{{ c.codiceCer }}</span>
+                    @if (c.pericoloso) { <span class="badge-hp">HP</span> }
+                  </td>
+                  <td class="td-desc">{{ c.descrizione }}</td>
+                  <td>
+                    @if (c.pericoloso) {
+                      <span class="tipo-pericol">⚠️ Pericoloso</span>
+                    } @else {
+                      <span class="tipo-normale">✅ Non pericoloso</span>
+                    }
+                  </td>
+                  <td>{{ c.statoFisico ?? '—' }}</td>
+                  <td>{{ c.unitaMisura ?? '—' }}</td>
+                  <td class="td-mono">{{ c.codiceGestione ?? '—' }}</td>
+                  <td class="td-small">{{ c.destinatarioAbituale ?? '—' }}</td>
+                  <td>
+                    @if (c.attivo) { <span class="badge-attivo">Attivo</span> }
+                    @else { <span class="badge-inattivo">Inattivo</span> }
+                  </td>
+                  @if (isResponsabileOrAdmin()) {
+                    <td class="td-actions" (click)="$event.stopPropagation()">
+                      <button class="btn-icon" (click)="openNewMovimento(c.id!)" title="Nuovo movimento">📦</button>
+                      <button class="btn-icon" (click)="editCodice(c)" title="Modifica">✏️</button>
+                      <button class="btn-icon btn-danger" (click)="requestDeleteCodice(c.id!)" title="Elimina">🗑️</button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        <!-- Movimenti del codice selezionato -->
+        @if (selectedCodiceId()) {
+          @let sel = getCodiceById(selectedCodiceId()!);
+          <div class="movimenti-preview">
+            <div class="preview-header">
+              <span>📦 Movimenti per <strong>{{ sel?.codiceCer }}</strong> — {{ sel?.descrizione }}</span>
+              <div class="preview-actions">
+                <select class="filter-select-sm" [value]="filterAnno()"
+                  (change)="filterAnno.set(+$any($event.target).value); onAnnoChange()">
+                  @for (a of anniRange(); track a) { <option [value]="a">{{ a }}</option> }
+                </select>
+                @if (isResponsabileOrAdmin()) {
+                  <button class="btn-sm btn-primary" (click)="openNewMovimento(selectedCodiceId()!)">+ Movimento</button>
+                }
+              </div>
+            </div>
+
+            @if (movimentiFiltrati().length === 0) {
+              <div class="empty-state-sm">Nessun movimento registrato per questo codice CER.</div>
+            } @else {
+              <table class="mov-table">
+                <thead>
+                  <tr>
+                    <th>Mese</th>
+                    <th>Tipo</th>
+                    <th class="th-num">Quantità</th>
+                    <th>U.M.</th>
+                    <th>Operazione</th>
+                    <th>N° FIR</th>
+                    <th>Destinatario</th>
+                    <th>Data op.</th>
+                    @if (isResponsabileOrAdmin()) { <th class="th-actions"></th> }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of movimentiFiltrati(); track m.id) {
+                    <tr>
+                      <td>{{ meseLabel(m.mese) }}</td>
+                      <td>
+                        <span class="tipo-badge" [class]="TIPO_MOV_CLASS[m.tipoMovimento]">
+                          {{ TIPO_MOV_ICON[m.tipoMovimento] }} {{ TIPO_MOV_LABEL[m.tipoMovimento] }}
+                        </span>
+                      </td>
+                      <td class="td-num">{{ m.quantita | number:'1.0-3' }}</td>
+                      <td>{{ m.unitaMisura ?? '—' }}</td>
+                      <td class="td-mono">{{ m.codiceOperazione ?? '—' }}</td>
+                      <td class="td-mono">{{ m.numeroFir ?? '—' }}</td>
+                      <td class="td-small">{{ m.destinatario ?? '—' }}</td>
+                      <td>{{ m.dataOperazione ? (m.dataOperazione | date:'dd/MM/yyyy') : '—' }}</td>
+                      @if (isResponsabileOrAdmin()) {
+                        <td class="td-actions">
+                          <button class="btn-icon" (click)="editMovimento(m)">✏️</button>
+                          <button class="btn-icon btn-danger" (click)="requestDeleteMov(m.id!)">🗑️</button>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            }
+          </div>
+        }
+
+      </div>
+    }
+
+    <!-- ══════════ TAB MOVIMENTI ══════════ -->
+    @if (activeTab() === 'movimenti') {
+      <div class="tab-content">
+
+        <!-- Toolbar movimenti -->
+        <div class="toolbar">
+          <select class="filter-select-sm" [value]="filterAnno()"
+            (change)="filterAnno.set(+$any($event.target).value); onAnnoChange()">
+            @for (a of anniRange(); track a) { <option [value]="a">{{ a }}</option> }
+          </select>
+
+          <select class="filter-select-sm" [value]="filterMese() ?? ''"
+            (change)="filterMese.set($any($event.target).value ? +$any($event.target).value : null)">
+            <option value="">Tutti i mesi</option>
+            @for (m of MESI_NUM; track m) { <option [value]="m">{{ meseLabel(m) }}</option> }
+          </select>
+
+          <select class="filter-select-sm" [value]="filterTipoMov() ?? ''"
+            (change)="filterTipoMov.set($any($event.target).value || null)">
+            <option value="">Tutti i tipi</option>
+            @for (t of tipiMov; track t) {
+              <option [value]="t">{{ tipoMovIcon(t) }} {{ tipoMovLabel(t) }}</option>
+            }
+          </select>
+
+          @if (isResponsabileOrAdmin()) {
+            <button class="btn-primary" (click)="openNewMovimento()">+ Nuovo Movimento</button>
+          }
+        </div>
+
+        <!-- Riepilogo totali -->
+        <div class="totali-strip">
+          @for (tipo of tipiMov; track tipo) {
+            @if (totaliPerTipo().has($any(tipo))) {
+              <div class="totale-card">
+                <span class="totale-icon">{{ tipoMovIcon(tipo) }}</span>
+                <span class="totale-label">{{ tipoMovLabel(tipo) }}</span>
+                <span class="totale-val">{{ totaliPerTipo().get($any(tipo)) | number:'1.0-2' }} t</span>
+              </div>
+            }
+          }
+        </div>
+
+        @if (movimentiFiltrati().length === 0) {
+          <div class="empty-state-sm">Nessun movimento per i filtri selezionati.</div>
+        } @else {
+          <table class="mov-table">
+            <thead>
+              <tr>
+                <th>Mese</th>
+                <th>CER</th>
+                <th>Descrizione</th>
+                <th>Tipo</th>
+                <th class="th-num">Quantità</th>
+                <th>U.M.</th>
+                <th>Operazione</th>
+                <th>N° FIR</th>
+                <th>Destinatario</th>
+                <th>Data op.</th>
+                @if (isResponsabileOrAdmin()) { <th class="th-actions">Azioni</th> }
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of movimentiFiltrati(); track m.id) {
+                <tr>
+                  <td>{{ meseLabel(m.mese) }}</td>
+                  <td>
+                    <span class="cer-badge" [class]="m.pericoloso ? 'cer-pericoloso' : 'cer-normale'">{{ m.codiceCer }}</span>
+                  </td>
+                  <td class="td-desc">{{ m.descrizioneRifiuto }}</td>
+                  <td>
+                    <span class="tipo-badge" [class]="TIPO_MOV_CLASS[m.tipoMovimento]">
+                      {{ TIPO_MOV_ICON[m.tipoMovimento] }} {{ TIPO_MOV_LABEL[m.tipoMovimento] }}
+                    </span>
+                  </td>
+                  <td class="td-num">{{ m.quantita | number:'1.0-3' }}</td>
+                  <td>{{ m.unitaMisura ?? '—' }}</td>
+                  <td class="td-mono">{{ m.codiceOperazione ?? '—' }}</td>
+                  <td class="td-mono">{{ m.numeroFir ?? '—' }}</td>
+                  <td class="td-small">{{ m.destinatario ?? '—' }}</td>
+                  <td>{{ m.dataOperazione ? (m.dataOperazione | date:'dd/MM/yyyy') : '—' }}</td>
+                  @if (isResponsabileOrAdmin()) {
+                    <td class="td-actions">
+                      <button class="btn-icon" (click)="editMovimento(m)">✏️</button>
+                      <button class="btn-icon btn-danger" (click)="requestDeleteMov(m.id!)">🗑️</button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+      </div>
+    }
+
+  }
+</div>
+
+<!-- ══════════ MODAL CODICE CER ══════════ -->
+@if (showCodiceModal()) {
+  <div class="modal-overlay" (click)="showCodiceModal.set(false)">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingCodiceId() ? 'Modifica Codice CER' : 'Nuovo Codice CER' }}</h2>
+        <button class="btn-close" (click)="showCodiceModal.set(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field">
+            <label>Stabilimento *</label>
+            <select [value]="codiceForm().stabilimentoId ?? ''"
+              (change)="patchCodiceForm('stabilimentoId', +$any($event.target).value || undefined)">
+              <option value="">— Seleziona —</option>
+              @for (st of stabilimenti(); track st.id) { <option [value]="st.id">{{ st.nome }}</option> }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Codice CER *</label>
+            <input type="text" placeholder="es. 15 01 01" [value]="codiceForm().codiceCer ?? ''"
+              (input)="patchCodiceForm('codiceCer', $any($event.target).value)" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Descrizione *</label>
+            <input type="text" [value]="codiceForm().descrizione ?? ''"
+              (input)="patchCodiceForm('descrizione', $any($event.target).value)"
+              placeholder="Descrizione del rifiuto" />
+          </div>
+          <div class="form-field form-check">
+            <label>
+              <input type="checkbox" [checked]="codiceForm().pericoloso ?? false"
+                (change)="patchCodiceForm('pericoloso', $any($event.target).checked)" />
+              ⚠️ Rifiuto pericoloso (HP)
+            </label>
+          </div>
+          <div class="form-field">
+            <label>Stato fisico</label>
+            <select [value]="codiceForm().statoFisico ?? ''"
+              (change)="patchCodiceForm('statoFisico', $any($event.target).value || undefined)">
+              <option value="">—</option>
+              @for (s of statiF; track s) { <option [value]="s">{{ s }}</option> }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Unità di misura</label>
+            <select [value]="codiceForm().unitaMisura ?? 't'"
+              (change)="patchCodiceForm('unitaMisura', $any($event.target).value)">
+              <option value="t">t (tonnellate)</option>
+              <option value="kg">kg (chilogrammi)</option>
+              <option value="m³">m³ (metri cubi)</option>
+              <option value="l">l (litri)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Codice gestione (R/D)</label>
+            <input type="text" placeholder="es. R5, D15" [value]="codiceForm().codiceGestione ?? ''"
+              (input)="patchCodiceForm('codiceGestione', $any($event.target).value)" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Destinatario abituale</label>
+            <input type="text" [value]="codiceForm().destinatarioAbituale ?? ''"
+              (input)="patchCodiceForm('destinatarioAbituale', $any($event.target).value)"
+              placeholder="Ragione sociale destinatario" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Note</label>
+            <textarea rows="2" [value]="codiceForm().note ?? ''"
+              (input)="patchCodiceForm('note', $any($event.target).value)"></textarea>
+          </div>
+          <div class="form-field form-check">
+            <label>
+              <input type="checkbox" [checked]="codiceForm().attivo ?? true"
+                (change)="patchCodiceForm('attivo', $any($event.target).checked)" />
+              Codice attivo
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary"
+          [disabled]="!codiceForm().codiceCer || !codiceForm().descrizione || !codiceForm().stabilimentoId"
+          (click)="saveCodice()">Salva</button>
+        <button class="btn-secondary" (click)="showCodiceModal.set(false)">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════ MODAL MOVIMENTO ══════════ -->
+@if (showMovModal()) {
+  <div class="modal-overlay" (click)="showMovModal.set(false)">
+    <div class="modal-panel" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ editingMovId() ? 'Modifica Movimento' : 'Nuovo Movimento Rifiuto' }}</h2>
+        <button class="btn-close" (click)="showMovModal.set(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <div class="form-field form-field-full">
+            <label>Codice CER *</label>
+            <select [value]="movForm().codiceRifiutoId ?? ''"
+              (change)="patchMovForm('codiceRifiutoId', +$any($event.target).value || undefined)">
+              <option value="">— Seleziona —</option>
+              @for (c of codici(); track c.id) {
+                <option [value]="c.id">{{ c.codiceCer }} — {{ c.descrizione }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Anno *</label>
+            <select [value]="movForm().anno ?? filterAnno()"
+              (change)="patchMovForm('anno', +$any($event.target).value)">
+              @for (a of anniRange(); track a) { <option [value]="a">{{ a }}</option> }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Mese</label>
+            <select [value]="movForm().mese ?? ''"
+              (change)="patchMovForm('mese', $any($event.target).value ? +$any($event.target).value : undefined)">
+              <option value="">Annuale / N.D.</option>
+              @for (m of MESI_NUM; track m) { <option [value]="m">{{ meseLabel(m) }}</option> }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Tipo movimento *</label>
+            <select [value]="movForm().tipoMovimento ?? ''"
+              (change)="patchMovForm('tipoMovimento', $any($event.target).value)">
+              <option value="">— Seleziona —</option>
+              @for (t of tipiMov; track t) {
+                <option [value]="t">{{ tipoMovIcon(t) }} {{ tipoMovLabel(t) }}</option>
+              }
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Quantità *</label>
+            <input type="number" step="any" min="0" [value]="movForm().quantita ?? ''"
+              (input)="patchMovForm('quantita', +$any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label>Unità di misura</label>
+            <select [value]="movForm().unitaMisura ?? 't'"
+              (change)="patchMovForm('unitaMisura', $any($event.target).value)">
+              <option value="t">t</option>
+              <option value="kg">kg</option>
+              <option value="m³">m³</option>
+              <option value="l">l</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label>Codice operazione (R/D)</label>
+            <input type="text" placeholder="es. R5, D15" [value]="movForm().codiceOperazione ?? ''"
+              (input)="patchMovForm('codiceOperazione', $any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label>N° FIR</label>
+            <input type="text" placeholder="Formulario Identificazione Rifiuto" [value]="movForm().numeroFir ?? ''"
+              (input)="patchMovForm('numeroFir', $any($event.target).value)" />
+          </div>
+          <div class="form-field">
+            <label>Data operazione</label>
+            <input type="date" [value]="movForm().dataOperazione ?? ''"
+              (input)="patchMovForm('dataOperazione', $any($event.target).value || undefined)" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Destinatario</label>
+            <input type="text" [value]="movForm().destinatario ?? ''"
+              (input)="patchMovForm('destinatario', $any($event.target).value)"
+              placeholder="Ragione sociale" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Trasportatore</label>
+            <input type="text" [value]="movForm().trasportatore ?? ''"
+              (input)="patchMovForm('trasportatore', $any($event.target).value)"
+              placeholder="Ragione sociale" />
+          </div>
+          <div class="form-field form-field-full">
+            <label>Note</label>
+            <textarea rows="2" [value]="movForm().note ?? ''"
+              (input)="patchMovForm('note', $any($event.target).value)"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary"
+          [disabled]="!movForm().codiceRifiutoId || !movForm().tipoMovimento || movForm().quantita == null"
+          (click)="saveMovimento()">Salva</button>
+        <button class="btn-secondary" (click)="showMovModal.set(false)">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══════════ CONFERME ELIMINAZIONE ══════════ -->
+@if (confirmDeleteCodiceId()) {
+  <div class="modal-overlay" (click)="cancelDeleteCodice()">
+    <div class="modal-confirm" (click)="$event.stopPropagation()">
+      <h3>⚠️ Eliminare il codice CER?</h3>
+      <p>Verranno eliminati anche tutti i movimenti associati.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDeleteCodice()">Elimina</button>
+        <button class="btn-secondary" (click)="cancelDeleteCodice()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}
+
+@if (confirmDeleteMovId()) {
+  <div class="modal-overlay" (click)="cancelDeleteMov()">
+    <div class="modal-confirm" (click)="$event.stopPropagation()">
+      <h3>⚠️ Eliminare il movimento?</h3>
+      <p>L'operazione non può essere annullata.</p>
+      <div class="confirm-actions">
+        <button class="btn-danger-solid" (click)="confirmDeleteMov()">Elimina</button>
+        <button class="btn-secondary" (click)="cancelDeleteMov()">Annulla</button>
+      </div>
+    </div>
+  </div>
+}

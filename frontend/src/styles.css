@@ -1,0 +1,180 @@
+/* Global Styles - AIA Management System - Grandi Molini Italia */
+
+/* Brand Colors */
+:root {
+  --gmi-primary: #003366;        /* Blu scuro professionale */
+  --gmi-secondary: #0066CC;      /* Blu medio */
+  --gmi-accent: #D4AF37;         /* Oro/Giallo */
+  --gmi-light: #F5F7FA;          /* Grigio chiaro */
+  --gmi-white: #FFFFFF;
+  --gmi-text: #2C3E50;
+  --gmi-gray: #6B7280;
+  --gmi-border: #E5E7EB;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--gmi-light);
+  color: var(--gmi-text);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.card {
+  background: var(--gmi-white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.08);
+  margin-bottom: 24px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--gmi-border);
+}
+
+.card-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gmi-primary);
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.stat-card {
+  background: var(--gmi-white);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 51, 102, 0.08);
+  border-left: 4px solid var(--gmi-accent);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.12);
+}
+
+.stat-value {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--gmi-primary);
+  margin-bottom: 8px;
+}
+
+.stat-label {
+  color: var(--gmi-gray);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Loading */
+.loading {
+  text-align: center;
+  padding: 40px;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--gmi-border);
+  border-top: 4px solid var(--gmi-accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Main Content */
+.main-content {
+  min-height: calc(100vh - 70px);
+  padding-top: 0;
+}
+
+/* Buttons Global */
+.btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-size: 14px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--gmi-primary) 0%, var(--gmi-secondary) 100%);
+  color: var(--gmi-white);
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 51, 102, 0.3);
+}
+
+.btn-secondary {
+  background: var(--gmi-border);
+  color: var(--gmi-text);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #d1d5db;
+}
+
+.btn-accent {
+  background: var(--gmi-accent);
+  color: var(--gmi-primary);
+}
+
+.btn-accent:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+}
+
+/* Forms Global */
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Utilities */
+.text-primary {
+  color: var(--gmi-primary);
+}
+
+.text-accent {
+  color: var(--gmi-accent);
+}
+
+.bg-primary {
+  background-color: var(--gmi-primary);
+}
+
+.bg-accent {
+  background-color: var(--gmi-accent);
+}

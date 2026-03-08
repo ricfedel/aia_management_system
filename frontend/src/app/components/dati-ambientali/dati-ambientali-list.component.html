@@ -1,0 +1,255 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">{{ 'datiAmbientali.title' | translate }}</h2>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="exportExcel()">
+          📥 Export Excel
+        </button>
+        @if (canEdit()) {
+          <button class="btn btn-primary" (click)="openCreateForm()">
+            ➕ {{ 'datiAmbientali.create' | translate }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>{{ 'datiAmbientali.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- Dati Ambientali Table -->
+    @if (!loading()) {
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ 'datiAmbientali.dataCampionamento' | translate }}</th>
+              <th>{{ 'datiAmbientali.parametro' | translate }}</th>
+              <th>{{ 'datiAmbientali.valoreMisurato' | translate }}</th>
+              <th>{{ 'datiAmbientali.limiteAutorizzato' | translate }}</th>
+              <th>{{ 'datiAmbientali.statoConformita' | translate }}</th>
+              <th>{{ 'datiAmbientali.laboratorio' | translate }}</th>
+              <th>{{ 'datiAmbientali.azioni' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (dato of datiAmbientali(); track dato.id) {
+              <tr>
+                <td><strong>{{ formatDate(dato.dataCampionamento) }}</strong></td>
+                <td>
+                  {{ dato.parametro }}
+                  @if (dato.note) {
+                    <div class="note-preview">{{ dato.note }}</div>
+                  }
+                </td>
+                <td>
+                  @if (dato.valoreMisurato !== undefined) {
+                    {{ formatNumber(dato.valoreMisurato) }}
+                    @if (dato.unitaMisura) {
+                      <span class="unit">{{ dato.unitaMisura }}</span>
+                    }
+                  } @else {
+                    <span class="no-value">-</span>
+                  }
+                </td>
+                <td>
+                  @if (dato.limiteAutorizzato !== undefined) {
+                    {{ formatNumber(dato.limiteAutorizzato) }}
+                    @if (dato.unitaMisura) {
+                      <span class="unit">{{ dato.unitaMisura }}</span>
+                    }
+                  } @else {
+                    <span class="no-value">-</span>
+                  }
+                </td>
+                <td>
+                  @if (dato.statoConformita) {
+                    <span class="badge" [ngClass]="getConformitaClass(dato.statoConformita)">
+                      {{ dato.statoConformita | enumTranslate:'statoConformita' }}
+                    </span>
+                  }
+                </td>
+                <td>{{ dato.laboratorio || '-' }}</td>
+                <td>
+                  <div class="action-buttons">
+                    @if (canEdit()) {
+                      <button class="btn btn-sm btn-edit"
+                              (click)="openEditForm(dato)"
+                              [title]="'common.edit' | translate">
+                        ✏️
+                      </button>
+                    }
+                    @if (canDelete()) {
+                      <button class="btn btn-sm btn-danger"
+                              (click)="deleteDatiAmbientali(dato)"
+                              [title]="'common.delete' | translate">
+                        🗑️
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="no-data">
+                  {{ 'datiAmbientali.noDati' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Form Modal -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ (editMode() ? 'datiAmbientali.editDato' : 'datiAmbientali.newDato') | translate }}</h3>
+          <button class="btn-close" (click)="closeForm()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <form (ngSubmit)="saveDatiAmbientali()">
+            <!-- Data Campionamento e Parametro -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dataCampionamento">{{ 'datiAmbientali.dataCampionamentoRequired' | translate }}</label>
+                <input type="date"
+                       id="dataCampionamento"
+                       class="form-control"
+                       [ngModel]="formData().dataCampionamento"
+                       (ngModelChange)="updateDataCampionamento($event)"
+                       name="dataCampionamento"
+                       required>
+              </div>
+
+              <div class="form-group">
+                <label for="parametro">{{ 'datiAmbientali.parametroRequired' | translate }}</label>
+                <input type="text"
+                       id="parametro"
+                       class="form-control"
+                       [ngModel]="formData().parametro"
+                       (ngModelChange)="updateParametro($event)"
+                       name="parametro"
+                       placeholder="es. PM10, PM2.5, NO2"
+                       required>
+              </div>
+            </div>
+
+            <!-- Valore Misurato e Unità di Misura -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="valoreMisurato">{{ 'datiAmbientali.valoreMisurato' | translate }}</label>
+                <input type="number"
+                       id="valoreMisurato"
+                       class="form-control"
+                       [ngModel]="formData().valoreMisurato"
+                       (ngModelChange)="updateValoreMisurato($event)"
+                       name="valoreMisurato"
+                       step="0.01"
+                       placeholder="0.00">
+              </div>
+
+              <div class="form-group">
+                <label for="unitaMisura">{{ 'datiAmbientali.unitaMisura' | translate }}</label>
+                <input type="text"
+                       id="unitaMisura"
+                       class="form-control"
+                       [ngModel]="formData().unitaMisura"
+                       (ngModelChange)="updateUnitaMisura($event)"
+                       name="unitaMisura"
+                       placeholder="es. µg/m³, mg/L">
+              </div>
+
+              <div class="form-group">
+                <label for="limiteAutorizzato">{{ 'datiAmbientali.limiteAutorizzato' | translate }}</label>
+                <input type="number"
+                       id="limiteAutorizzato"
+                       class="form-control"
+                       [ngModel]="formData().limiteAutorizzato"
+                       (ngModelChange)="updateLimiteAutorizzato($event)"
+                       name="limiteAutorizzato"
+                       step="0.01"
+                       placeholder="0.00">
+              </div>
+            </div>
+
+            <!-- Stato Conformita e Metodo Analisi -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="statoConformita">{{ 'datiAmbientali.statoConformitaRequired' | translate }}</label>
+                <select id="statoConformita"
+                        class="form-control"
+                        [ngModel]="formData().statoConformita"
+                        (ngModelChange)="updateStatoConformita($event)"
+                        name="statoConformita"
+                        required>
+                  @for (stato of statiConformita; track stato) {
+                    <option [value]="stato">{{ stato | enumTranslate:'statoConformita' }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="metodoAnalisi">{{ 'datiAmbientali.metodoAnalisi' | translate }}</label>
+                <select id="metodoAnalisi"
+                        class="form-control"
+                        [ngModel]="formData().metodoAnalisi"
+                        (ngModelChange)="updateMetodoAnalisi($event)"
+                        name="metodoAnalisi">
+                  @for (metodo of metodi; track metodo) {
+                    <option [value]="metodo">{{ metodo | enumTranslate:'metodoAnalisi' }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="laboratorio">{{ 'datiAmbientali.laboratorio' | translate }}</label>
+                <input type="text"
+                       id="laboratorio"
+                       class="form-control"
+                       [ngModel]="formData().laboratorio"
+                       (ngModelChange)="updateLaboratorio($event)"
+                       name="laboratorio"
+                       placeholder="Nome laboratorio">
+              </div>
+            </div>
+
+            <!-- Note -->
+            <div class="form-group">
+              <label for="note">{{ 'datiAmbientali.note' | translate }}</label>
+              <textarea id="note"
+                        class="form-control"
+                        [ngModel]="formData().note"
+                        (ngModelChange)="updateNote($event)"
+                        name="note"
+                        rows="2"
+                        placeholder="Note aggiuntive"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+              <button type="button"
+                      class="btn btn-secondary"
+                      (click)="closeForm()">
+                {{ 'datiAmbientali.cancel' | translate }}
+              </button>
+              <button type="submit"
+                      class="btn btn-primary">
+                💾 {{ 'datiAmbientali.save' | translate }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+</div>

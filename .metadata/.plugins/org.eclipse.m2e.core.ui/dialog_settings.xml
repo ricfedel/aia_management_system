@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="MavenProjectImportWizardPage">
+		<list key="rootDirectory">
+			<item value="/Users/riccardo.fedel/Library/Application Support/Claude/local-agent-mode-sessions/53d4e708-7d50-4938-ab1b-67a37ac4ef99/766921be-80b3-44a9-8087-3bdbd4a26a3a/local_3f29329a-b19b-4f83-b485-7ea1ad4ce7ee/outputs/aia-management-system 2"/>
+		</list>
+		<list key="projectNameTemplate">
+			<item value="[artifactId]"/>
+			<item value="[artifactId]-TRUNK"/>
+			<item value="[artifactId]-[version]"/>
+			<item value="[groupId].[artifactId]"/>
+			<item value="[groupId].[artifactId]-[version]"/>
+			<item value="[name]"/>
+		</list>
+	</section>
+</section>

@@ -1,0 +1,546 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">{{ 'scadenze.title' | translate }}</h2>
+      <div class="header-actions">
+        <!-- Toggle Lista / Calendario -->
+        <div class="view-toggle">
+          <button class="view-btn" [class.active]="activeView() === 'lista'"
+                  (click)="activeView.set('lista')">☰ Lista</button>
+          <button class="view-btn" [class.active]="activeView() === 'calendario'"
+                  (click)="activeView.set('calendario')">📅 Calendario</button>
+        </div>
+        <button class="btn btn-secondary" (click)="exportExcel()">
+          📥 Export Excel
+        </button>
+        @if (canEdit()) {
+          <button class="btn btn-import" (click)="openImportModal()">
+            📂 Importa da Excel
+          </button>
+          <button class="btn btn-primary" (click)="openCreateForm()">
+            ➕ {{ 'scadenze.create' | translate }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>{{ 'scadenze.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- ═══════════════════════ VISTA CALENDARIO ═══════════════════════ -->
+    @if (!loading() && activeView() === 'calendario') {
+      <div class="calendar-container">
+
+        <!-- Toolbar calendario -->
+        <div class="cal-toolbar">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" (click)="prevMonth()">&#8249;</button>
+            <span class="cal-month-label">{{ calMonthLabel() }}</span>
+            <button class="cal-nav-btn" (click)="nextMonth()">&#8250;</button>
+            <button class="cal-today-btn" (click)="goToToday()">Oggi</button>
+          </div>
+          <div class="cal-filter">
+            <select class="form-control cal-filter-select"
+                    (change)="calFilterStabilimento.set(+$any($event.target).value || null)">
+              <option value="">Tutti gli stabilimenti</option>
+              @for (st of stabilimenti(); track st.id) {
+                <option [value]="st.id">{{ st.nome }}</option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <!-- Strip mensile dell'anno (dot-count per mese) -->
+        <div class="cal-year-strip">
+          @for (m of [0,1,2,3,4,5,6,7,8,9,10,11]; track m) {
+            <button class="cal-month-dot"
+                    [class.active]="calMonth() === m"
+                    (click)="calMonth.set(m); selectedDay.set(null)">
+              <span class="dot-month">{{ ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][m] }}</span>
+              @if (monthCount(m) > 0) {
+                <span class="dot-count">{{ monthCount(m) }}</span>
+              }
+            </button>
+          }
+        </div>
+
+        <!-- Griglia -->
+        <div class="cal-grid-wrap">
+          <!-- Intestazioni giorni -->
+          <div class="cal-weekdays">
+            @for (d of weekDays; track d) {
+              <div class="cal-weekday">{{ d }}</div>
+            }
+          </div>
+
+          <!-- Celle giorni (42 = 6 settimane) -->
+          <div class="cal-cells">
+            @for (day of calendarDays(); track day.date.getTime()) {
+              <div class="cal-cell"
+                   [class.other-month]="!day.isCurrentMonth"
+                   [class.today]="day.isToday"
+                   [class.has-events]="day.scadenze.length > 0"
+                   [class.selected]="selectedDay()?.date?.getTime() === day.date.getTime()"
+                   (click)="selectDay(day)">
+                <span class="cal-day-num">{{ day.dayNum }}</span>
+                <div class="cal-chips">
+                  @for (s of day.scadenze.slice(0,3); track s.id) {
+                    <span class="cal-chip" [ngClass]="chipClass(s)"
+                          [title]="s.titolo">
+                      {{ s.titolo.length > 18 ? s.titolo.slice(0,18) + '…' : s.titolo }}
+                    </span>
+                  }
+                  @if (day.scadenze.length > 3) {
+                    <span class="cal-chip chip-more">+{{ day.scadenze.length - 3 }} altri</span>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Legenda -->
+        <div class="cal-legend">
+          <span class="legend-item"><span class="cal-chip chip-pmc">PMC</span></span>
+          <span class="legend-item"><span class="cal-chip chip-relazione">Relazione</span></span>
+          <span class="legend-item"><span class="cal-chip chip-rinnovo">Rinnovo</span></span>
+          <span class="legend-item"><span class="cal-chip chip-comunicazione">Comunicazione</span></span>
+          <span class="legend-item"><span class="cal-chip chip-integrazione">Integrazione</span></span>
+          <span class="legend-item"><span class="cal-chip chip-altro">Altro</span></span>
+          <span class="legend-item"><span class="cal-chip chip-scaduta">Scaduta</span></span>
+          <span class="legend-item"><span class="cal-chip chip-completata">Completata</span></span>
+        </div>
+
+      </div>
+
+      <!-- Day detail panel -->
+      @if (selectedDay()) {
+        <div class="day-detail-panel">
+          <div class="day-detail-header">
+            <span>{{ selectedDay()!.date | date:'EEEE d MMMM yyyy':'':'it' }}</span>
+            <button class="btn-close-detail" (click)="closeDayDetail()">✕</button>
+          </div>
+          <div class="day-detail-body">
+            @for (s of selectedDay()!.scadenze; track s.id) {
+              <div class="day-detail-item">
+                <span class="cal-chip" [ngClass]="chipClass(s)">{{ s.tipoScadenza | enumTranslate:'tipoScadenza' }}</span>
+                <div class="detail-info">
+                  <strong>{{ s.titolo }}</strong>
+                  @if (s.stabilimento?.nome) {
+                    <span class="detail-stab">📍 {{ s.stabilimento.nome }}</span>
+                  }
+                  @if (s.riferimento) {
+                    <span class="detail-rif">📋 {{ s.riferimento }}</span>
+                  }
+                  @if (s.dataPrevistaAttivazione) {
+                    <span class="detail-attiv">⏳ Attivarsi entro: {{ s.dataPrevistaAttivazione }}</span>
+                  }
+                </div>
+                <span class="detail-stato" [ngClass]="getStatoClass(s.stato)">{{ s.stato }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    }
+
+    <!-- Scadenze Table -->
+    @if (!loading() && activeView() === 'lista') {
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ 'scadenze.titolo' | translate }}</th>
+              <th>{{ 'scadenze.dataScadenza' | translate }}</th>
+              <th>{{ 'scadenze.stabilimento' | translate }}</th>
+              <th>{{ 'scadenze.tipoScadenza' | translate }}</th>
+              <th>{{ 'scadenze.stato' | translate }}</th>
+              <th>{{ 'scadenze.priorita' | translate }}</th>
+              <th>{{ 'scadenze.azioni' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (scadenza of scadenze(); track scadenza.id) {
+              <tr>
+                <td><strong>{{ scadenza.titolo }}</strong>
+                  @if (scadenza.descrizione) {
+                    <div class="note-preview">{{ scadenza.descrizione }}</div>
+                  }
+                </td>
+                <td>{{ scadenza.dataScadenza | date:'dd/MM/yyyy' }}</td>
+                <td>{{ scadenza.stabilimento?.nome }}</td>
+                <td>{{ scadenza.tipoScadenza | enumTranslate:'tipoScadenza' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getStatoClass(scadenza.stato || '')">
+                    {{ scadenza.stato | enumTranslate:'statoScadenza' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="getPrioritaClass(scadenza.priorita || '')">
+                    {{ scadenza.priorita | enumTranslate:'priorita' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    @if (isCompletable(scadenza.stato || '')) {
+                      <button class="btn btn-sm btn-success"
+                              (click)="completeScadenza(scadenza)"
+                              [title]="'scadenze.complete' | translate">
+                        ✓
+                      </button>
+                    }
+                    @if (canEdit()) {
+                      <button class="btn btn-sm btn-edit"
+                              (click)="openEditForm(scadenza)"
+                              [title]="'common.edit' | translate">
+                        ✏️
+                      </button>
+                    }
+                    @if (canDelete()) {
+                      <button class="btn btn-sm btn-danger"
+                              (click)="deleteScadenza(scadenza)"
+                              [title]="'common.delete' | translate">
+                        🗑️
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="no-data">
+                  {{ 'scadenze.noScadenze' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Form Modal -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ (editMode() ? 'scadenze.editScadenza' : 'scadenze.newScadenza') | translate }}</h3>
+          <button class="btn-close" (click)="closeForm()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <form (ngSubmit)="saveScadenza()">
+            <!-- Titolo e Stabilimento -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="titolo">{{ 'scadenze.titoloRequired' | translate }}</label>
+                <input type="text"
+                       id="titolo"
+                       class="form-control"
+                       [ngModel]="formData().titolo"
+                       (ngModelChange)="updateTitolo($event)"
+                       name="titolo"
+                       required>
+              </div>
+
+              <div class="form-group">
+                <label for="stabilimentoId">{{ 'scadenze.stabilimentoRequired' | translate }}</label>
+                <select id="stabilimentoId"
+                        class="form-control"
+                        [ngModel]="formData().stabilimentoId"
+                        (ngModelChange)="updateStabilimentoId($event)"
+                        name="stabilimentoId"
+                        required>
+                  @for (stab of stabilimenti(); track stab.id) {
+                    <option [value]="stab.id">{{ stab.nome }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Descrizione -->
+            <div class="form-group">
+              <label for="descrizione">{{ 'scadenze.descrizione' | translate }}</label>
+              <textarea id="descrizione"
+                        class="form-control"
+                        [ngModel]="formData().descrizione"
+                        (ngModelChange)="updateDescrizione($event)"
+                        name="descrizione"
+                        rows="2"></textarea>
+            </div>
+
+            <!-- Data Scadenza e Tipo Scadenza -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="dataScadenza">{{ 'scadenze.dataScadenzaRequired' | translate }}</label>
+                <input type="date"
+                       id="dataScadenza"
+                       class="form-control"
+                       [ngModel]="formData().dataScadenza"
+                       (ngModelChange)="updateDataScadenza($event)"
+                       name="dataScadenza"
+                       required>
+              </div>
+
+              <div class="form-group">
+                <label for="tipoScadenza">{{ 'scadenze.tipoScadenzaRequired' | translate }}</label>
+                <select id="tipoScadenza"
+                        class="form-control"
+                        [ngModel]="formData().tipoScadenza"
+                        (ngModelChange)="updateTipoScadenza($event)"
+                        name="tipoScadenza"
+                        required>
+                  @for (tipo of tipiScadenza; track tipo) {
+                    <option [value]="tipo">{{ tipo | enumTranslate:'tipoScadenza' }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Stato, Priorita, Giorni Preavviso -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="stato">{{ 'scadenze.statoRequired' | translate }}</label>
+                <select id="stato"
+                        class="form-control"
+                        [ngModel]="formData().stato"
+                        (ngModelChange)="updateStato($event)"
+                        name="stato"
+                        required>
+                  @for (stato of stati; track stato) {
+                    <option [value]="stato">{{ stato | enumTranslate:'statoScadenza' }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="priorita">{{ 'scadenze.prioritaRequired' | translate }}</label>
+                <select id="priorita"
+                        class="form-control"
+                        [ngModel]="formData().priorita"
+                        (ngModelChange)="updatePriorita($event)"
+                        name="priorita"
+                        required>
+                  @for (priorita of prioritaOptions; track priorita) {
+                    <option [value]="priorita">{{ priorita | enumTranslate:'priorita' }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="giorniPreavviso">{{ 'scadenze.giorniPreavviso' | translate }}</label>
+                <input type="number"
+                       id="giorniPreavviso"
+                       class="form-control"
+                       [ngModel]="formData().giorniPreavviso"
+                       (ngModelChange)="updateGiorniPreavviso($event)"
+                       name="giorniPreavviso"
+                       min="0">
+              </div>
+            </div>
+
+            <!-- Responsabile e Email Notifica -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="responsabile">{{ 'scadenze.responsabile' | translate }}</label>
+                <input type="text"
+                       id="responsabile"
+                       class="form-control"
+                       [ngModel]="formData().responsabile"
+                       (ngModelChange)="updateResponsabile($event)"
+                       name="responsabile">
+              </div>
+
+              <div class="form-group">
+                <label for="emailNotifica">{{ 'scadenze.emailNotifica' | translate }}</label>
+                <input type="email"
+                       id="emailNotifica"
+                       class="form-control"
+                       [ngModel]="formData().emailNotifica"
+                       (ngModelChange)="updateEmailNotifica($event)"
+                       name="emailNotifica">
+              </div>
+            </div>
+
+            <!-- Note -->
+            <div class="form-group">
+              <label for="note">{{ 'scadenze.note' | translate }}</label>
+              <textarea id="note"
+                        class="form-control"
+                        [ngModel]="formData().note"
+                        (ngModelChange)="updateNote($event)"
+                        name="note"
+                        rows="2"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+              <button type="button"
+                      class="btn btn-secondary"
+                      (click)="closeForm()">
+                {{ 'scadenze.cancel' | translate }}
+              </button>
+              <button type="submit"
+                      class="btn btn-primary">
+                💾 {{ 'scadenze.save' | translate }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     MODAL IMPORT DA EXCEL
+════════════════════════════════════════════════════════════════ -->
+@if (showImportModal()) {
+  <div class="modal-overlay" (click)="closeImportModal()">
+    <div class="modal-dialog import-modal" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <h3>📂 Importa scadenze da Excel</h3>
+        <button class="btn-close" (click)="closeImportModal()">✕</button>
+      </div>
+
+      <!-- STEP 1 – UPLOAD ─────────────────────────────────────── -->
+      @if (importStep() === 'upload') {
+        <div class="modal-body">
+          <p class="import-hint">
+            Carica il file Excel nel formato <strong>"Scadenze e prescrizioni di gruppo.xlsx"</strong>.<br>
+            Il sistema riconoscerà automaticamente siti, date e tipologie.
+          </p>
+          <label class="file-drop-zone">
+            <input type="file" accept=".xlsx,.xls" (change)="onImportFileChange($event)" style="display:none">
+            @if (importFile()) {
+              <span class="file-selected">✅ {{ importFile()!.name }}</span>
+            } @else {
+              <span>📁 Clicca per selezionare il file Excel</span>
+            }
+          </label>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeImportModal()">Annulla</button>
+          <button class="btn btn-primary"
+                  [disabled]="!importFile() || importLoading()"
+                  (click)="runPreview()">
+            @if (importLoading()) { ⏳ Analisi... } @else { 🔍 Analizza file }
+          </button>
+        </div>
+      }
+
+      <!-- STEP 2 – MAPPING siti non riconosciuti ──────────────── -->
+      @if (importStep() === 'mapping') {
+        <div class="modal-body">
+          <p class="import-hint">
+            ⚠️ Alcuni siti nel file non sono stati abbinati automaticamente a uno stabilimento.
+            Seleziona manualmente l'abbinamento:
+          </p>
+          @for (sito of sitiNonMappati; track sito) {
+            <div class="mapping-row">
+              <span class="sito-badge">{{ sito }}</span>
+              <select class="form-control"
+                      (change)="setMappingForSito(sito, +$any($event.target).value)">
+                <option value="">-- Seleziona stabilimento --</option>
+                @for (st of stabilimenti(); track st.id) {
+                  <option [value]="st.id">{{ st.nome }} ({{ st.citta }})</option>
+                }
+              </select>
+            </div>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="importStep.set('upload')">← Indietro</button>
+          <button class="btn btn-primary"
+                  [disabled]="importLoading()"
+                  (click)="applyMappingAndPreview()">
+            @if (importLoading()) { ⏳ ... } @else { 🔄 Riapplica e continua }
+          </button>
+        </div>
+      }
+
+      <!-- STEP 3 – PREVIEW righe ──────────────────────────────── -->
+      @if (importStep() === 'preview') {
+        <div class="modal-body preview-body">
+          <div class="preview-toolbar">
+            <span>{{ righeSelezionate }} scadenze selezionate su {{ importPreview()?.righe?.length }}</span>
+            <div class="preview-actions">
+              <button class="btn btn-xs btn-secondary" (click)="selectAll(true)">Seleziona tutte</button>
+              <button class="btn btn-xs btn-secondary" (click)="selectAll(false)">Deseleziona tutte</button>
+            </div>
+          </div>
+          <div class="preview-table-wrap">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th></th>
+                  <th>Sito</th>
+                  <th>Stabilimento</th>
+                  <th>Data scadenza</th>
+                  <th>Tipo</th>
+                  <th>Descrizione</th>
+                  <th>Stato</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (riga of importPreview()?.righe; track riga.rigaExcel) {
+                  <tr [class.row-error]="riga.errore" [class.row-deselected]="!riga.selezionata">
+                    <td>
+                      <input type="checkbox"
+                             [checked]="riga.selezionata"
+                             [disabled]="!!riga.errore"
+                             (change)="toggleRiga(riga)">
+                    </td>
+                    <td><span class="sito-badge">{{ riga.sito }}</span></td>
+                    <td>{{ riga.stabilimentoNome ?? '⚠️ Non mappato' }}</td>
+                    <td>{{ riga.dataScadenza }}</td>
+                    <td><span class="tipo-badge">{{ riga.tipoScadenzaRilevato }}</span></td>
+                    <td class="causale-cell">{{ riga.causale }}</td>
+                    <td>
+                      @if (riga.errore) {
+                        <span class="badge badge-error">{{ riga.errore }}</span>
+                      } @else {
+                        <span class="badge badge-ok">OK</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="importStep.set('upload')">← Ricomincia</button>
+          <button class="btn btn-primary"
+                  [disabled]="importLoading() || righeSelezionate === 0"
+                  (click)="confirmImport()">
+            @if (importLoading()) { ⏳ Importazione... }
+            @else { ✅ Importa {{ righeSelezionate }} scadenze }
+          </button>
+        </div>
+      }
+
+      <!-- STEP 4 – DONE ───────────────────────────────────────── -->
+      @if (importStep() === 'done') {
+        <div class="modal-body import-done">
+          <div class="done-icon">✅</div>
+          <h4>Import completato</h4>
+          <p><strong>{{ importResult()?.create }}</strong> scadenze create con successo</p>
+          @if ((importResult()?.saltate ?? 0) > 0) {
+            <p class="saltate-note">{{ importResult()?.saltate }} righe saltate (data non valida o deselezionate)</p>
+          }
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" (click)="closeImportModal()">Chiudi</button>
+        </div>
+      }
+
+    </div>
+  </div>
+}

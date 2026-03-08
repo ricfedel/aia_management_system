@@ -1,0 +1,340 @@
+<div class="overlay" (click)="chiudi.emit()">
+  <div class="drawer" (click)="$event.stopPropagation()">
+
+    <!-- Header fisso -->
+    <div class="drawer-header">
+      <div class="header-info">
+        <h2 class="drawer-title">🔍 Analisi documento</h2>
+        <span class="doc-name">{{ documentoNome }}</span>
+      </div>
+      <button class="close-btn" (click)="chiudi.emit()">×</button>
+    </div>
+
+    <!-- Progress steps -->
+    <div class="progress-bar">
+      <div class="step" [class.active]="fase() === 'analisi'" [class.done]="fase() !== 'analisi'">
+        <div class="step-dot">{{ fase() !== 'analisi' ? '✓' : '1' }}</div>
+        <span>Analisi</span>
+      </div>
+      <div class="step-line" [class.done]="fase() === 'revisione' || fase() === 'completato'"></div>
+      <div class="step" [class.active]="fase() === 'revisione'" [class.done]="fase() === 'completato'">
+        <div class="step-dot">{{ fase() === 'completato' ? '✓' : '2' }}</div>
+        <span>Revisione</span>
+      </div>
+      <div class="step-line" [class.done]="fase() === 'completato'"></div>
+      <div class="step" [class.active]="fase() === 'completato'">
+        <div class="step-dot">3</div>
+        <span>Completato</span>
+      </div>
+    </div>
+
+    <!-- Contenuto scrollabile -->
+    <div class="drawer-body">
+
+      <!-- ══ FASE 1: AVVIO ANALISI ══════════════════════════════════════════ -->
+      <div *ngIf="fase() === 'analisi'" class="fase-container">
+
+        <div *ngIf="!loading()" class="analisi-start">
+          <div class="analisi-icon">🤖</div>
+          <h3>Pronto per l'analisi</h3>
+          <p class="analisi-desc">
+            Il sistema leggerà il contenuto del documento, estrarrà automaticamente
+            <strong>scadenze</strong> e <strong>prescrizioni</strong> usando PDFBox
+            <ng-container *ngIf="true"> + analisi AI (se configurata)</ng-container>,
+            e ti mostrerà una proposta da rivedere prima di aggiornare il sistema.
+          </p>
+          <div class="analisi-steps">
+            <div class="mini-step">📄 Estrazione testo PDF</div>
+            <div class="mini-step">🔍 Riconoscimento date e scadenze</div>
+            <div class="mini-step">📋 Identificazione prescrizioni</div>
+            <div class="mini-step">🤖 Arricchimento AI (se abilitato)</div>
+            <div class="mini-step">✅ Revisione e conferma operatore</div>
+          </div>
+          <div *ngIf="errore()" class="alert alert-error">⚠️ {{ errore() }}</div>
+          <button class="btn btn-primary btn-large" (click)="avviaAnalisi()">
+            ▶ Avvia analisi
+          </button>
+        </div>
+
+        <div *ngIf="loading()" class="loading-state">
+          <div class="loader-ring"></div>
+          <p>Analisi in corso…<br><small>Estrazione testo e riconoscimento entità</small></p>
+        </div>
+
+      </div>
+
+      <!-- ══ FASE 2: REVISIONE ══════════════════════════════════════════════ -->
+      <div *ngIf="fase() === 'revisione' && proposta() as p" class="fase-container">
+
+        <!-- Intestazione risultato analisi -->
+        <div class="analisi-summary">
+          <div class="summary-badge">
+            <span class="metodo-tag">{{ metodoLabels[p.metodo] }}</span>
+            <span class="confidenza-badge" [style.color]="confidenzaColore()">
+              Confidenza: {{ getConfidenzaLabel(p.confidenza) }}
+            </span>
+          </div>
+          <div *ngIf="p.avvisi" class="alert alert-warn">⚠️ {{ p.avvisi }}</div>
+        </div>
+
+        <!-- ── Sezione 1: Metadati ────────────────────────────────────────── -->
+        <section class="review-section">
+          <h3 class="section-title">
+            📋 Metadati documento
+            <span class="section-hint">Verifica e correggi i dati estratti</span>
+          </h3>
+          <div class="meta-grid">
+            <div class="form-group">
+              <label>Oggetto</label>
+              <input type="text" [value]="metadati().oggetto ?? ''"
+                     (input)="updateMetadati('oggetto', $any($event.target).value)"
+                     placeholder="Oggetto del documento">
+            </div>
+            <div class="form-group">
+              <label>Ente emittente</label>
+              <input type="text" [value]="metadati().enteEmittente ?? ''"
+                     (input)="updateMetadati('enteEmittente', $any($event.target).value)"
+                     placeholder="Es. ARPA Veneto, Regione Veneto">
+            </div>
+            <div class="form-group">
+              <label>Numero protocollo</label>
+              <input type="text" [value]="metadati().numeroProtocollo ?? ''"
+                     (input)="updateMetadati('numeroProtocollo', $any($event.target).value)"
+                     placeholder="Es. ARPA/2026/000123">
+            </div>
+            <div class="form-group">
+              <label>Data ricezione</label>
+              <input type="date" [value]="metadati().dataRicezione ?? ''"
+                     (input)="updateMetadati('dataRicezione', $any($event.target).value)">
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Sezione 2: Scadenze ────────────────────────────────────────── -->
+        <section class="review-section">
+          <div class="section-header-row">
+            <h3 class="section-title">
+              📅 Scadenze proposte
+              <span class="count-badge">{{ scadenzeSelezionate() }} / {{ scadenze().length }} selezionate</span>
+            </h3>
+            <div class="section-actions">
+              <button class="btn-link" (click)="selezionaTutteScadenze(true)">Tutte</button>
+              <button class="btn-link" (click)="selezionaTutteScadenze(false)">Nessuna</button>
+              <button class="btn btn-sm btn-outline" (click)="aggiungiScadenza()">+ Aggiungi</button>
+            </div>
+          </div>
+
+          <div *ngIf="scadenze().length === 0" class="empty-hint">
+            Nessuna scadenza rilevata automaticamente. Puoi aggiungerle manualmente.
+          </div>
+
+          <div class="entity-list">
+            <div *ngFor="let s of scadenze(); let i = index"
+                 class="entity-card" [class.unchecked]="!s.selezionata">
+
+              <div class="entity-check">
+                <input type="checkbox" [checked]="s.selezionata"
+                       (change)="toggleScadenza(i)">
+              </div>
+
+              <div class="entity-body">
+                <div class="entity-row">
+                  <div class="form-group flex-2">
+                    <label>Titolo *</label>
+                    <input type="text" [value]="s.titolo"
+                           (input)="updateScadenza(i, 'titolo', $any($event.target).value)"
+                           placeholder="Titolo scadenza">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Data scadenza *</label>
+                    <input type="date" [value]="s.dataScadenza"
+                           (input)="updateScadenza(i, 'dataScadenza', $any($event.target).value)">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Tipo</label>
+                    <select [value]="s.tipo ?? ''"
+                            (change)="updateScadenza(i, 'tipo', $any($event.target).value)">
+                      <option *ngFor="let t of tipiScadenza" [value]="t.value">{{ t.label }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="entity-row">
+                  <div class="form-group flex-2">
+                    <label>Descrizione</label>
+                    <input type="text" [value]="s.descrizione ?? ''"
+                           (input)="updateScadenza(i, 'descrizione', $any($event.target).value)"
+                           placeholder="Descrizione dell'adempimento">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Stabilimento</label>
+                    <select [value]="s.stabilimentoId ?? ''"
+                            (change)="updateScadenza(i, 'stabilimentoId', +$any($event.target).value)">
+                      <option value="">— seleziona —</option>
+                      <option *ngFor="let st of stabilimenti()" [value]="st.id">{{ st.nome }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="testo-origine" *ngIf="s.testoOrigine">
+                  <span class="origine-label">Dal testo:</span>
+                  <span class="origine-text">"{{ s.testoOrigine }}"</span>
+                  <span class="confidenza-pill" *ngIf="s.confidenza">
+                    {{ (s.confidenza! * 100).toFixed(0) }}%
+                  </span>
+                </div>
+              </div>
+
+              <button class="remove-btn" (click)="rimuoviScadenza(i)" title="Rimuovi">✕</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Sezione 3: Prescrizioni ────────────────────────────────────── -->
+        <section class="review-section">
+          <div class="section-header-row">
+            <h3 class="section-title">
+              📜 Prescrizioni proposte
+              <span class="count-badge">{{ prescrizioniSelezionate() }} / {{ prescrizioni().length }} selezionate</span>
+            </h3>
+            <div class="section-actions">
+              <button class="btn-link" (click)="selezionaTuttePrescrizioni(true)">Tutte</button>
+              <button class="btn-link" (click)="selezionaTuttePrescrizioni(false)">Nessuna</button>
+              <button class="btn btn-sm btn-outline" (click)="aggiungiPrescrizione()">+ Aggiungi</button>
+            </div>
+          </div>
+
+          <div class="hint-box" *ngIf="prescrizioni().length > 0">
+            💡 Le prescrizioni NON sono pre-selezionate: verifica attentamente prima di importarle.
+          </div>
+
+          <div *ngIf="prescrizioni().length === 0" class="empty-hint">
+            Nessuna prescrizione rilevata automaticamente.
+          </div>
+
+          <div class="entity-list">
+            <div *ngFor="let pr of prescrizioni(); let i = index"
+                 class="entity-card" [class.unchecked]="!pr.selezionata">
+
+              <div class="entity-check">
+                <input type="checkbox" [checked]="pr.selezionata"
+                       (change)="togglePrescrizione(i)">
+              </div>
+
+              <div class="entity-body">
+                <div class="entity-row">
+                  <div class="form-group flex-1">
+                    <label>Codice *</label>
+                    <input type="text" [value]="pr.codice"
+                           (input)="updatePrescrizione(i, 'codice', $any($event.target).value)"
+                           placeholder="Es. A.3">
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Tipo</label>
+                    <select [value]="pr.tipo ?? 'ALTRO'"
+                            (change)="updatePrescrizione(i, 'tipo', $any($event.target).value)">
+                      <option *ngFor="let t of tipiPrescrizione" [value]="t.value">{{ t.label }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group flex-1">
+                    <label>Stabilimento</label>
+                    <select [value]="pr.stabilimentoId ?? ''"
+                            (change)="updatePrescrizione(i, 'stabilimentoId', +$any($event.target).value)">
+                      <option value="">— seleziona —</option>
+                      <option *ngFor="let st of stabilimenti()" [value]="st.id">{{ st.nome }}</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="entity-row">
+                  <div class="form-group flex-1">
+                    <label>Descrizione</label>
+                    <textarea [value]="pr.descrizione ?? ''"
+                              (input)="updatePrescrizione(i, 'descrizione', $any($event.target).value)"
+                              rows="2" placeholder="Descrizione della prescrizione"></textarea>
+                  </div>
+                </div>
+                <div class="testo-origine" *ngIf="pr.testoOrigine">
+                  <span class="origine-label">Dal testo:</span>
+                  <span class="origine-text">"{{ pr.testoOrigine }}"</span>
+                  <span class="confidenza-pill" *ngIf="pr.confidenza">
+                    {{ (pr.confidenza! * 100).toFixed(0) }}%
+                  </span>
+                </div>
+              </div>
+
+              <button class="remove-btn" (click)="rimuoviPrescrizione(i)" title="Rimuovi">✕</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Sezione 4: Testo estratto (collapsible) ────────────────────── -->
+        <section class="review-section" *ngIf="p.testoEstratto">
+          <button class="section-toggle" (click)="toggleTestoAperto()">
+            📄 Testo estratto dal documento
+            <span>{{ testoAperto() ? '▲' : '▼' }}</span>
+          </button>
+          <div *ngIf="testoAperto()" class="testo-box">
+            <pre>{{ p.testoEstratto }}</pre>
+          </div>
+        </section>
+
+        <!-- ── Note revisione ─────────────────────────────────────────────── -->
+        <section class="review-section">
+          <div class="form-group">
+            <label>Note dell'operatore (opzionale)</label>
+            <textarea [value]="noteRevisione()"
+                      (input)="noteRevisione.set($any($event.target).value)"
+                      rows="2" placeholder="Eventuali osservazioni sulla revisione"></textarea>
+          </div>
+        </section>
+
+        <div *ngIf="errore()" class="alert alert-error">⚠️ {{ errore() }}</div>
+
+      </div>
+
+      <!-- ══ FASE 3: COMPLETATO ══════════════════════════════════════════════ -->
+      <div *ngIf="fase() === 'completato' && risultato() as r" class="fase-container">
+        <div class="success-box">
+          <div class="success-icon">✅</div>
+          <h3>Conferma completata!</h3>
+          <p>{{ r.messaggio }}</p>
+
+          <div class="result-stats">
+            <div class="stat-item">
+              <span class="stat-num">{{ r.scadenzeCreate }}</span>
+              <span class="stat-label">Scadenze create</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">{{ r.prescrizioniCreate }}</span>
+              <span class="stat-label">Prescrizioni create</span>
+            </div>
+          </div>
+
+          <div class="result-detail" *ngIf="r.processoAggiornato">
+            <span class="processo-badge">
+              ⚙️ Processo BPM avanzato: {{ r.processoAggiornato.taskCorrente ?? 'completato' }}
+            </span>
+          </div>
+
+          <button class="btn btn-primary" (click)="chiudi.emit()">Chiudi</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer fisso con azioni -->
+    <div class="drawer-footer" *ngIf="fase() === 'revisione'">
+      <div class="footer-summary">
+        <span>{{ scadenzeSelezionate() }} scadenze · {{ prescrizioniSelezionate() }} prescrizioni da creare</span>
+      </div>
+      <div class="footer-actions">
+        <button class="btn btn-secondary" (click)="chiudi.emit()">Annulla</button>
+        <button class="btn btn-primary"
+                [disabled]="loading()"
+                (click)="conferma()">
+          <span *ngIf="loading()" class="btn-spinner"></span>
+          {{ loading() ? 'Conferma in corso…' : '✓ Conferma e crea entità' }}
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

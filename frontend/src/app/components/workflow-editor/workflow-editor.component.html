@@ -1,0 +1,453 @@
+<div class="editor-shell">
+
+  <!-- ─── Header ──────────────────────────────────────────────────────────── -->
+  <div class="editor-header">
+    <div class="header-left">
+      <h2 class="editor-title">
+        {{ definizione ? '✏️ Modifica flusso' : '➕ Nuovo flusso' }}
+      </h2>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline" (click)="annulla()">Annulla</button>
+      <button class="btn btn-secondary" (click)="anteprimaStep()" [disabled]="loading() || !modelerReady()">
+        @if (loading()) { ⏳ } @else { 🔍 Anteprima step }
+      </button>
+      <button class="btn btn-primary" (click)="salva()" [disabled]="loading() || !modelerReady()">
+        @if (loading()) { ⏳ Salvataggio... } @else { 💾 Salva flusso }
+      </button>
+    </div>
+  </div>
+
+  <!-- ─── Feedback ────────────────────────────────────────────────────────── -->
+  @if (errore()) {
+    <div class="alert alert-error">❌ {{ errore() }}</div>
+  }
+  @if (successo()) {
+    <div class="alert alert-success">✅ {{ successo() }}</div>
+  }
+
+  <!-- ─── Metadati flusso ──────────────────────────────────────────────────── -->
+  <div class="meta-panel">
+    <div class="field-group">
+      <label class="field-label">Nome flusso *</label>
+      <input class="field-input" type="text" placeholder="Es. Rinnovo AIA 2026"
+             [value]="nome()" (input)="nome.set($any($event.target).value)">
+    </div>
+    <div class="field-group field-wide">
+      <label class="field-label">Descrizione</label>
+      <input class="field-input" type="text" placeholder="Descrizione opzionale del processo..."
+             [value]="descrizione()" (input)="descrizione.set($any($event.target).value)">
+    </div>
+    @if (definizione) {
+      <div class="version-badge">v{{ definizione.versione }}</div>
+    }
+  </div>
+
+  <!-- ─── Canvas + Pannello configurazione ────────────────────────────────── -->
+  <div class="canvas-area">
+
+    <!-- Canvas BPMN -->
+    <div class="canvas-wrapper" [class.with-panel]="selectedServiceTaskId()">
+      @if (!modelerReady()) {
+        <div class="canvas-loading">
+          <span class="spinner">⏳</span>
+          <p>Caricamento editor BPMN...</p>
+        </div>
+      }
+      <div #bpmnCanvas class="bpmn-canvas" [class.hidden]="!modelerReady()"></div>
+    </div>
+
+    <!-- ─── Pannello configurazione elemento selezionato ──────────────────── -->
+    @if (selectedServiceTaskId()) {
+      <div class="api-panel">
+
+        <!-- Header pannello -->
+        <div class="api-panel-header">
+          <span class="api-panel-title">
+            @if (selectedElementType() === 'xorGateway')  { 🔀 Gateway XOR (esclusivo) }
+            @else if (selectedElementType() === 'andGateway')  { ⫸ Gateway AND (parallelo) }
+            @else if (selectedElementType() === 'callActivity') { 📦 Sub-processo }
+            @else { ⚙️ Step automatico }
+          </span>
+          <button class="btn-close-panel" (click)="selectedServiceTaskId.set(null)" title="Chiudi">✕</button>
+        </div>
+        <div class="api-panel-task-name">{{ selectedServiceTaskName() }}</div>
+
+        <!-- ════ XOR GATEWAY ════ -->
+        @if (selectedElementType() === 'xorGateway') {
+          <div class="api-panel-body">
+            <div class="section-header">🔀 Gateway Esclusivo (XOR)</div>
+            <div class="gateway-explain">
+              <p>Il gateway XOR sceglie <strong>uno solo</strong> dei rami uscenti in base alle condizioni.</p>
+              <p>Per configurare le condizioni:</p>
+              <ol class="gateway-steps">
+                <li>Clicca sulla <strong>freccia (sequenceFlow)</strong> che esce da questo gateway</li>
+                <li>Nel pannello proprietà di bpmn-js appare un campo <em>Condition</em></li>
+                <li>Inserisci la condizione in formato: <code>&#36;&#123; esito == 'APPROVATO' &#125;</code></li>
+              </ol>
+              <div class="api-info-box">
+                <strong>Variabili disponibili nelle condizioni:</strong><br>
+                <code>&#36;&#123; esito == 'APPROVATO' &#125;</code> — esito del task precedente<br>
+                <code>&#36;&#123; formData.decisione == 'si' &#125;</code> — campo dal form<br>
+                <code>&#36;&#123; Task_Login.status_code &gt;= 200 &#125;</code> — risposta API<br>
+                <code>&#36;&#123; codiceProcesso == 'RIN-2026-00001' &#125;</code> — variabili processo<br><br>
+                <strong>Operatori supportati:</strong> <code>==  !=  &gt;  &lt;  &gt;=  &lt;=</code><br>
+                <strong>Default:</strong> l'arco senza condizione viene preso se nessun'altra è vera.
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ════ AND GATEWAY ════ -->
+        @if (selectedElementType() === 'andGateway') {
+          <div class="api-panel-body">
+            <div class="section-header">⫸ Gateway Parallelo (AND)</div>
+            <div class="gateway-explain">
+              <p>Il gateway AND attiva <strong>tutti</strong> i rami uscenti contemporaneamente.</p>
+              <p>Per il <strong>join</strong> (convergenza): collega tutti i rami a un secondo gateway AND — il processo si sblocca solo quando <em>tutti</em> i task paralleli sono completati.</p>
+              <div class="api-info-box">
+                <strong>Struttura tipica:</strong>
+                <pre class="gateway-diagram">
+    [Task A] ──┐
+ [AND Fork] ──┤──[Task B]──┬── [AND Join] ──► [Prossimo task]
+    [Task C] ──┘
+                </pre>
+                <strong>Nessuna configurazione richiesta</strong> — l'engine rileva il fork/join
+                automaticamente dal numero di archi entranti/uscenti.
+              </div>
+            </div>
+          </div>
+        }
+
+        <!-- ════ CALL ACTIVITY (sub-processo) ════ -->
+        @if (selectedElementType() === 'callActivity') {
+          <div class="api-panel-body">
+            <div class="section-header">📦 Sub-processo (Call Activity)</div>
+
+            <label class="api-label">
+              Nome del flusso da eseguire *
+              <span class="api-hint">Deve corrispondere esattamente al nome di una Definizione Flusso nel sistema</span>
+            </label>
+            <input class="api-input" type="text"
+                   placeholder="Es. Rinnovo AIA oppure Verifica Tecnica"
+                   [value]="callActivityElement()"
+                   (input)="callActivityElement.set($any($event.target).value)">
+
+            <button class="btn btn-primary api-apply-btn"
+                    [disabled]="!callActivityElement().trim()"
+                    (click)="applicaCallActivity()">
+              📦 Applica sub-processo al diagramma
+            </button>
+
+            <div class="api-info-box">
+              <strong>Come funziona:</strong> quando l'engine raggiunge questo nodo,
+              cerca la definizione flusso per nome, crea un processo figlio e lo esegue.
+              Il processo padre rimane in attesa finché il figlio non completa.
+              <br><br>
+              <strong>Nota:</strong> il processo figlio condivide lo stesso documento
+              e stabilimento del processo padre.
+            </div>
+          </div>
+        }
+
+        <!-- ════ SERVICE TASK (azione automatica) ════ -->
+        @if (selectedElementType() === 'serviceTask') {
+        <!-- Selettore tipo -->
+        <div class="type-selector">
+          <div class="type-selector-label">Tipo di azione</div>
+          <div class="type-grid">
+            @for (t of TASK_TYPES; track t.value) {
+              <button
+                class="type-btn"
+                [class.active]="autoTaskForm().tipo === t.value"
+                (click)="setTipo(t.value)"
+                [title]="t.label">
+                <span class="type-btn-icon">{{ t.icon }}</span>
+                <span class="type-btn-label">{{ t.label }}</span>
+              </button>
+            }
+          </div>
+        </div>
+
+        <!-- ── Body del pannello ── -->
+        <div class="api-panel-body">
+
+          <!-- ════ API_CALL ════ -->
+          @if (autoTaskForm().tipo === 'API_CALL') {
+            <div class="section-header">🌐 Chiamata HTTP</div>
+
+            <label class="api-label">URL endpoint *</label>
+            <input class="api-input" type="url" placeholder="https://api.example.com/endpoint"
+                   [value]="autoTaskForm().url"
+                   (input)="updateField('url', $any($event.target).value)">
+
+            <label class="api-label">Metodo HTTP</label>
+            <select class="api-input api-select"
+                    [value]="autoTaskForm().method"
+                    (change)="updateField('method', $any($event.target).value)">
+              @for (m of HTTP_METHODS; track m) {
+                <option [value]="m" [selected]="autoTaskForm().method === m">{{ m }}</option>
+              }
+            </select>
+
+            <label class="api-label">
+              Body (JSON)
+              <span class="api-hint">
+                Variabili: $&#123;processoId&#125; · $&#123;documentoId&#125; · $&#123;codiceProcesso&#125;<br>
+                Output step precedenti: $&#123;Task_Login.access_token&#125;
+              </span>
+            </label>
+            <textarea class="api-input api-textarea" rows="5"
+                      placeholder='{"processoId": "${processoId}", "token": "${Task_Login.access_token}"}'
+                      [value]="autoTaskForm().body"
+                      (input)="updateField('body', $any($event.target).value)"></textarea>
+
+            <label class="api-label">
+              Headers extra
+              <span class="api-hint">Una per riga · Es: Authorization: Bearer $&#123;Task_Login.access_token&#125;</span>
+            </label>
+            <textarea class="api-input api-textarea" rows="3"
+                      placeholder="Authorization: Bearer ${Task_Login.access_token}"
+                      [value]="autoTaskForm().headers"
+                      (input)="updateField('headers', $any($event.target).value)"></textarea>
+
+            <div class="api-info-box">
+              <strong>API_CALL:</strong> il BPM engine esegue la chiamata HTTP automaticamente.
+              L'esito (status + body JSON) viene registrato e disponibile nei passi successivi
+              come <code>${{ '{' }}Task_ID.campo{{ '}' }}</code>.
+            </div>
+          }
+
+          <!-- ════ WEBHOOK ════ -->
+          @if (autoTaskForm().tipo === 'WEBHOOK') {
+            <div class="section-header">🔗 Webhook outbound</div>
+
+            <label class="api-label">URL destinazione *</label>
+            <input class="api-input" type="url" placeholder="https://hooks.example.com/trigger"
+                   [value]="autoTaskForm().url"
+                   (input)="updateField('url', $any($event.target).value)">
+
+            <label class="api-label">Metodo HTTP</label>
+            <select class="api-input api-select"
+                    [value]="autoTaskForm().method"
+                    (change)="updateField('method', $any($event.target).value)">
+              @for (m of HTTP_METHODS; track m) {
+                <option [value]="m" [selected]="autoTaskForm().method === m">{{ m }}</option>
+              }
+            </select>
+
+            <label class="api-label">
+              Payload (JSON)
+              <span class="api-hint">Supporta le stesse variabili di processo delle API_CALL</span>
+            </label>
+            <textarea class="api-input api-textarea" rows="4"
+                      placeholder='{"evento": "nuovo_documento", "processoId": "${processoId}"}'
+                      [value]="autoTaskForm().body"
+                      (input)="updateField('body', $any($event.target).value)"></textarea>
+
+            <label class="api-label">
+              Segreto HMAC-SHA256
+              <span class="api-hint">Opzionale — verrà incluso nell'header X-Signature</span>
+            </label>
+            <input class="api-input" type="text" placeholder="my-webhook-secret"
+                   [value]="autoTaskForm().webhookSecret"
+                   (input)="updateField('webhookSecret', $any($event.target).value)">
+
+            <label class="api-label">
+              Headers extra
+              <span class="api-hint">Una per riga</span>
+            </label>
+            <textarea class="api-input api-textarea" rows="2"
+                      placeholder="X-Custom-Header: valore"
+                      [value]="autoTaskForm().headers"
+                      (input)="updateField('headers', $any($event.target).value)"></textarea>
+
+            <div class="api-info-box">
+              <strong>WEBHOOK:</strong> invia una richiesta HTTP al sistema esterno.
+              Se impostato il segreto, viene aggiunto l'header <code>X-Signature: sha256=...</code>
+              per verificare l'autenticità della chiamata.
+            </div>
+          }
+
+          <!-- ════ EMAIL ════ -->
+          @if (autoTaskForm().tipo === 'EMAIL') {
+            <div class="section-header">📧 Invio Email</div>
+
+            <label class="api-label">
+              Destinatario *
+              <span class="api-hint">Email singola o variabile: $&#123;responsabile&#125;</span>
+            </label>
+            <input class="api-input" type="text" placeholder="utente@example.com o ${responsabile}"
+                   [value]="autoTaskForm().emailTo"
+                   (input)="updateField('emailTo', $any($event.target).value)">
+
+            <label class="api-label">
+              Oggetto *
+              <span class="api-hint">Supporta variabili: es. Processo $&#123;codiceProcesso&#125; aggiornato</span>
+            </label>
+            <input class="api-input" type="text"
+                   placeholder="Notifica processo ${codiceProcesso}"
+                   [value]="autoTaskForm().emailSubject"
+                   (input)="updateField('emailSubject', $any($event.target).value)">
+
+            <label class="api-label">
+              Corpo email
+              <span class="api-hint">Testo libero con variabili di processo</span>
+            </label>
+            <textarea class="api-input api-textarea" rows="5"
+                      placeholder="Il processo ${codiceProcesso} richiede la tua attenzione.&#10;&#10;Accedi al sistema per completare il passo successivo."
+                      [value]="autoTaskForm().emailBody"
+                      (input)="updateField('emailBody', $any($event.target).value)"></textarea>
+
+            <div class="api-info-box">
+              <strong>EMAIL:</strong> invia una notifica email automatica.
+              Tutte le variabili di processo (<code>$&#123;processoId&#125;</code>,
+              <code>$&#123;codiceProcesso&#125;</code>, ecc.) vengono risolte prima dell'invio.
+            </div>
+          }
+
+          <!-- ════ TIMER ════ -->
+          @if (autoTaskForm().tipo === 'TIMER') {
+            <div class="section-header">⏱️ Attendi / Timer</div>
+
+            <label class="api-label">
+              Durata attesa *
+              <span class="api-hint">Formato: 30m · 2h · 1d · 7d</span>
+            </label>
+            <input class="api-input" type="text" placeholder="1h"
+                   [value]="autoTaskForm().delay"
+                   (input)="updateField('delay', $any($event.target).value)">
+
+            <div class="preset-grid">
+              @for (p of DELAY_PRESETS; track p.value) {
+                <button class="preset-btn"
+                        [class.active]="autoTaskForm().delay === p.value"
+                        (click)="updateField('delay', p.value)">
+                  {{ p.label }}
+                </button>
+              }
+            </div>
+
+            <div class="api-info-box">
+              <strong>TIMER:</strong> il processo si mette in pausa per la durata specificata.
+              Un job schedulato controlla ogni minuto i timer scaduti e riprende automaticamente
+              il flusso. Il documento rimane in uno stato "in attesa" fino alla scadenza.
+            </div>
+          }
+
+          <!-- ════ SCRIPT ════ -->
+          @if (autoTaskForm().tipo === 'SCRIPT') {
+            <div class="section-header">📜 Script Groovy</div>
+
+            <label class="api-label">
+              Codice Groovy *
+              <span class="api-hint">
+                Variabili disponibili: <code>processo</code>, <code>documento</code>, <code>log</code>.
+                Restituire una Map&lt;String,Object&gt; per salvare output.
+              </span>
+            </label>
+            <textarea class="api-input api-textarea api-textarea-tall" rows="10"
+                      placeholder="// Esempio: calcola scadenza&#10;def scadenza = processo.createdAt.plusDays(30)&#10;return [scadenzaCalcolata: scadenza.toString()]"
+                      [value]="autoTaskForm().script"
+                      (input)="updateField('script', $any($event.target).value)"></textarea>
+
+            <div class="api-info-box api-info-warn">
+              <strong>⚠️ Attenzione:</strong> gli script Groovy vengono eseguiti in sandbox
+              con accesso limitato alle classi Java. Evitare operazioni I/O dirette;
+              usare le API del processo messe a disposizione dal runtime.
+            </div>
+          }
+
+          <!-- ════ GENERA_PDF ════ -->
+          @if (autoTaskForm().tipo === 'GENERA_PDF') {
+            <div class="section-header">📄 Genera PDF</div>
+
+            <label class="api-label">
+              Template PDF
+              <span class="api-hint">
+                Lascia vuoto per usare il template di default del processo.
+                Oppure specifica un percorso template personalizzato.
+              </span>
+            </label>
+            <input class="api-input" type="text"
+                   placeholder="default (oppure templates/rinnovo-aia.html)"
+                   [value]="autoTaskForm().template"
+                   (input)="updateField('template', $any($event.target).value)">
+
+            <div class="api-info-box">
+              <strong>GENERA_PDF:</strong> genera automaticamente un PDF riassuntivo
+              del processo con tutti i dati del documento AIA.
+              Il file viene allegato al processo e reso disponibile per il download.
+            </div>
+          }
+
+          <!-- ── Pulsante Applica ── -->
+          <button class="btn btn-primary api-apply-btn"
+                  [disabled]="!formValida"
+                  (click)="applicaAutoTask()">
+            {{ tipoIconForTask(autoTaskForm().tipo) }} Applica al diagramma
+          </button>
+
+        </div><!-- /api-panel-body serviceTask -->
+        } <!-- /if serviceTask -->
+
+      </div><!-- /api-panel -->
+    }
+  </div><!-- /canvas-area -->
+
+  <!-- ─── Legenda BPMN ────────────────────────────────────────────────────── -->
+  <div class="legend">
+    <span class="legend-item"><span class="legend-dot dot-start"></span> Start</span>
+    <span class="legend-item"><span class="legend-dot dot-user"></span> User Task</span>
+    <span class="legend-item"><span class="legend-dot dot-service"></span> Service Task ⚙️</span>
+    <span class="legend-item"><span class="legend-dot dot-end"></span> End</span>
+    <span class="legend-item">🔀 Gateway XOR</span>
+    <span class="legend-item">⫸ Gateway AND</span>
+    <span class="legend-item">📦 Call Activity</span>
+    <span class="legend-tip">💡 Clic su Service Task, Gateway o Call Activity per configurarli</span>
+  </div>
+
+</div>
+
+<!-- ─── Modal anteprima step ─────────────────────────────────────────────── -->
+@if (showPreview()) {
+  <div class="modal-overlay" (click)="showPreview.set(false)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔍 Anteprima step del flusso</h3>
+        <button class="btn-close" (click)="showPreview.set(false)">✕</button>
+      </div>
+      <div class="modal-body">
+        @if (stepsPreview().length === 0) {
+          <p class="empty-msg">Nessun task trovato nel diagramma.</p>
+        } @else {
+          <p class="preview-subtitle">
+            Il backend eseguirà i seguenti {{ stepsPreview().length }} step in ordine:
+          </p>
+          <ol class="steps-list">
+            @for (step of stepsPreview(); track step.id) {
+              <li class="step-item">
+                <span class="step-num">{{ step.ordine }}</span>
+                <span class="step-icon">{{ tipoIcon(step.tipoTask) }}</span>
+                <div class="step-info">
+                  <span class="step-nome">{{ step.nome }}</span>
+                  <span class="step-tipo" [class]="'tipo-' + step.tipoTask.toLowerCase().replace(':', '-')">
+                    {{ step.tipoTask === 'USER_TASK' ? 'Task utente' :
+                       step.tipoTask.includes('EMAIL') ? 'Email automatica' :
+                       step.tipoTask.includes('TIMER') ? 'Timer / Attesa' :
+                       step.tipoTask.includes('PDF') ? 'Genera PDF' :
+                       step.tipoTask.includes('SCRIPT') ? 'Script' :
+                       step.tipoTask.includes('WEBHOOK') ? 'Webhook' : 'Task automatico' }}
+                  </span>
+                </div>
+              </li>
+            }
+          </ol>
+        }
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" (click)="showPreview.set(false)">Chiudi</button>
+      </div>
+    </div>
+  </div>
+}

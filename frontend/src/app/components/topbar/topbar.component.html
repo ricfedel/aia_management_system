@@ -1,0 +1,42 @@
+@if (currentUser()) {
+  <header class="topbar">
+
+    <!-- Spaziatore sinistro -->
+    <div class="topbar-spacer"></div>
+
+    <!-- Destra: lingua + utente + logout -->
+    <div class="topbar-right">
+
+      <!-- Language switcher -->
+      <div class="lang-switcher">
+        <button class="lang-btn" [class.active]="currentLanguage() === 'it'"
+                (click)="switchLanguage('it')" title="Italiano">IT</button>
+        <span class="lang-sep">|</span>
+        <button class="lang-btn" [class.active]="currentLanguage() === 'en'"
+                (click)="switchLanguage('en')" title="English">EN</button>
+      </div>
+
+      <!-- Divisore -->
+      <div class="topbar-divider"></div>
+
+      <!-- User block -->
+      <div class="user-block">
+        <div class="user-avatar">{{ userInitials() }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ currentUser()?.nome }} {{ currentUser()?.cognome }}</span>
+          <span class="user-role">{{ currentUser()?.ruolo }}</span>
+        </div>
+      </div>
+
+      <!-- Divisore -->
+      <div class="topbar-divider"></div>
+
+      <!-- Logout -->
+      <button class="btn-logout" (click)="logout()" title="Logout">
+        <span class="logout-icon">🚪</span>
+        <span class="logout-label">Logout</span>
+      </button>
+
+    </div>
+  </header>
+}

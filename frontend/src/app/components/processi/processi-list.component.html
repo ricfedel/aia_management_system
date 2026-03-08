@@ -1,0 +1,284 @@
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">
+        <span class="title-icon">⚙️</span>
+        Processi BPM
+      </h1>
+      <p class="page-subtitle">Gestione workflow documentali</p>
+    </div>
+    <div class="header-right">
+      <button *ngIf="canManage()" class="btn btn-primary" (click)="openAvviaForm()">
+        ＋ Avvia processo
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-btn" [class.active]="activeTab()==='attivi'" (click)="activeTab.set('attivi')">
+      Attivi <span class="badge">{{ processiAttivi().length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab()==='miei'" (click)="activeTab.set('miei')">
+      I miei <span class="badge">{{ processiUtente().length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab()==='tutti'" (click)="activeTab.set('tutti')">
+      Tutti <span class="badge">{{ processi().length }}</span>
+    </button>
+  </div>
+
+  <!-- Layout split: lista a sinistra, dettaglio a destra -->
+  <div class="split-layout">
+
+    <!-- Lista processi -->
+    <div class="list-panel">
+      <div *ngIf="loading()" class="loading-state">
+        <div class="spinner"></div> Caricamento...
+      </div>
+
+      <div *ngIf="!loading() && displayedProcessi().length === 0" class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p>Nessun processo {{ activeTab() === 'attivi' ? 'attivo' : activeTab() === 'miei' ? 'assegnato a te' : '' }}</p>
+      </div>
+
+      <div
+        *ngFor="let p of displayedProcessi()"
+        class="process-card"
+        [class.selected]="selectedProcesso()?.id === p.id"
+        (click)="selectProcesso(p)"
+      >
+        <div class="card-top">
+          <span class="process-code">{{ p.codiceProcesso }}</span>
+          <span class="stato-badge" [style]="getStatoBadgeStyle(p.stato)">
+            {{ statoLabels[p.stato] }}
+          </span>
+        </div>
+        <div class="card-mid">
+          <strong>{{ tipoLabels[p.tipoProcesso] }}</strong>
+          <div class="card-doc" *ngIf="p.documentoNome">📄 {{ p.documentoNome }}</div>
+        </div>
+        <div class="card-bottom">
+          <span class="meta-item" *ngIf="p.stabilimentoNome">🏭 {{ p.stabilimentoNome }}</span>
+          <span class="meta-item">👤 {{ p.assegnatoA || p.avviatoDa }}</span>
+          <span class="meta-item">📅 {{ formatDate(p.dataAvvio) }}</span>
+        </div>
+        <div class="card-task" *ngIf="p.taskCorrente">
+          <span class="task-label">Task corrente:</span>
+          <span class="task-name">{{ p.taskCorrente }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dettaglio processo -->
+    <div class="detail-panel" *ngIf="selectedProcesso() as p; else noSelection">
+
+      <!-- Header dettaglio -->
+      <div class="detail-header">
+        <div>
+          <h2 class="detail-title">{{ p.codiceProcesso }}</h2>
+          <p class="detail-subtitle">{{ tipoLabels[p.tipoProcesso] }}</p>
+        </div>
+        <div class="detail-actions" *ngIf="canAdmin()">
+          <button
+            *ngIf="p.stato !== 'SOSPESO' && isProcessoAttivo(p)"
+            class="btn btn-sm btn-warning"
+            (click)="sospendiProcesso(p)">⏸ Sospendi</button>
+          <button
+            *ngIf="p.stato === 'SOSPESO'"
+            class="btn btn-sm btn-success"
+            (click)="riprendiProcesso(p)">▶ Riprendi</button>
+          <button
+            *ngIf="isProcessoAttivo(p)"
+            class="btn btn-sm btn-danger"
+            (click)="annullaProcesso(p)">✖ Annulla</button>
+        </div>
+      </div>
+
+      <!-- Info generali -->
+      <div class="info-grid">
+        <div class="info-item"><label>Stato</label>
+          <span class="stato-badge" [style]="getStatoBadgeStyle(p.stato)">{{ statoLabels[p.stato] }}</span>
+        </div>
+        <div class="info-item"><label>Documento</label><span>{{ p.documentoNome || '—' }}</span></div>
+        <div class="info-item"><label>Stabilimento</label><span>{{ p.stabilimentoNome || '—' }}</span></div>
+        <div class="info-item"><label>Avviato da</label><span>{{ p.avviatoDa }}</span></div>
+        <div class="info-item"><label>Assegnato a</label><span>{{ p.assegnatoA || '—' }}</span></div>
+        <div class="info-item"><label>Data avvio</label><span>{{ formatDate(p.dataAvvio) }}</span></div>
+        <div class="info-item" *ngIf="p.dataCompletamento">
+          <label>Data completamento</label><span>{{ formatDate(p.dataCompletamento) }}</span>
+        </div>
+        <div class="info-item" *ngIf="p.note"><label>Note</label><span>{{ p.note }}</span></div>
+      </div>
+
+      <!-- Diagramma BPMN (solo per tipo LAVORAZIONE_DOCUMENTO) -->
+      <div class="bpmn-section" *ngIf="p.tipoProcesso === 'LAVORAZIONE_DOCUMENTO'">
+        <h3 class="section-title">🗺️ Diagramma processo</h3>
+        <app-bpmn-viewer
+          [bpmnUrl]="bpmnUrl"
+          [taskStates]="taskStatMap()"
+          [activeTaskId]="activeTaskBpmnId()"
+        ></app-bpmn-viewer>
+      </div>
+
+      <!-- Stepper task -->
+      <div class="tasks-section">
+        <h3 class="section-title">📋 Step del processo</h3>
+        <div class="task-stepper">
+          <div
+            *ngFor="let t of p.tasks; let i = index"
+            class="step-item"
+            [ngClass]="getTaskStepClass(t)"
+          >
+            <div class="step-indicator">
+              <div class="step-circle">
+                <span *ngIf="t.statoTask === 'COMPLETATO'">✓</span>
+                <span *ngIf="t.statoTask === 'IN_CORSO'">▶</span>
+                <span *ngIf="t.statoTask === 'CREATO'">{{ i + 1 }}</span>
+                <span *ngIf="t.statoTask === 'ANNULLATO'">✗</span>
+              </div>
+              <div class="step-line" *ngIf="i < p.tasks.length - 1"></div>
+            </div>
+            <div class="step-content">
+              <div class="step-name">{{ t.nomeTask }}</div>
+              <div class="step-meta">
+                <span class="step-stato">{{ t.statoTask === 'IN_CORSO' ? '⚡ Attivo' : t.statoTask === 'COMPLETATO' ? '✓ Completato' : t.statoTask === 'CREATO' ? '⏳ In coda' : t.statoTask }}</span>
+                <span *ngIf="t.assegnatoA" class="step-utente">👤 {{ t.assegnatoA }}</span>
+                <span *ngIf="t.dataCompletamento" class="step-data">{{ formatDate(t.dataCompletamento) }}</span>
+              </div>
+              <div class="step-commento" *ngIf="t.commento">💬 {{ t.commento }}</div>
+              <div class="step-esito" *ngIf="t.esito">
+                <span [class]="t.esito === 'APPROVATO' ? 'esito-ok' : 'esito-ko'">{{ t.esito }}</span>
+              </div>
+              <!-- Azione: completa task se attivo e utente ha permessi -->
+              <div class="step-action" *ngIf="t.statoTask === 'IN_CORSO' && canManage()">
+                <button class="btn btn-sm btn-primary" (click)="openTaskForm(t); $event.stopPropagation()">
+                  Gestisci task →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <ng-template #noSelection>
+      <div class="detail-panel no-selection">
+        <div class="no-selection-content">
+          <span class="no-selection-icon">👈</span>
+          <p>Seleziona un processo dalla lista per vedere i dettagli</p>
+        </div>
+      </div>
+    </ng-template>
+  </div>
+
+</div>
+
+<!-- Modal: Avvia processo -->
+<div class="modal-overlay" *ngIf="showAvviaForm()" (click)="showAvviaForm.set(false)">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Avvia nuovo processo</h3>
+      <button class="close-btn" (click)="showAvviaForm.set(false)">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Toggle modalità processo -->
+      <div class="form-group">
+        <label>Modalità flusso *</label>
+        <div class="mode-toggle">
+          <button class="mode-btn" [class.active]="modalitaAvvio() === 'predefinito'"
+                  (click)="setModalitaAvvio('predefinito')">
+            📋 Processo predefinito
+          </button>
+          <button class="mode-btn" [class.active]="modalitaAvvio() === 'custom'"
+                  (click)="setModalitaAvvio('custom')"
+                  [disabled]="definizioniFlusso().length === 0">
+            🎨 Flusso personalizzato
+          </button>
+        </div>
+        <span *ngIf="definizioniFlusso().length === 0" class="hint-text">
+          ⚠️ Nessun flusso personalizzato disponibile — crea uno nella sezione Workflow
+        </span>
+      </div>
+
+      <!-- Tipo processo predefinito -->
+      <div class="form-group" *ngIf="modalitaAvvio() === 'predefinito'">
+        <label>Tipo processo *</label>
+        <select [value]="avviaData().tipoProcesso"
+                (change)="updateAvvia('tipoProcesso', $any($event.target).value)">
+          <option *ngFor="let t of tipiProcesso" [value]="t">{{ tipoLabels[t] }}</option>
+        </select>
+      </div>
+
+      <!-- Flusso personalizzato -->
+      <div class="form-group" *ngIf="modalitaAvvio() === 'custom'">
+        <label>Definizione flusso *</label>
+        <select [value]="avviaData().definizioneFlussoId"
+                (change)="updateAvvia('definizioneFlussoId', +$any($event.target).value)">
+          <option value="" disabled>Seleziona un flusso...</option>
+          <option *ngFor="let df of definizioniFlusso()" [value]="df.id">{{ df.nome }}</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Documento *</label>
+        <select [value]="avviaData().documentoId"
+                (change)="updateAvvia('documentoId', +$any($event.target).value)">
+          <option value="0" disabled>Seleziona documento</option>
+          <option *ngFor="let d of documenti()" [value]="d.id">{{ d.nome }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Assegnato a</label>
+        <input type="text" [value]="avviaData().assegnatoA"
+               (input)="updateAvvia('assegnatoA', $any($event.target).value)"
+               placeholder="username dell'operatore">
+      </div>
+      <div class="form-group">
+        <label>Note</label>
+        <textarea [value]="avviaData().note ?? ''"
+                  (input)="updateAvvia('note', $any($event.target).value)"
+                  rows="3" placeholder="Note opzionali"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="showAvviaForm.set(false)">Annulla</button>
+      <button class="btn btn-primary" (click)="avviaProcesso()">▶ Avvia</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Gestisci task -->
+<div class="modal-overlay" *ngIf="showTaskForm()" (click)="showTaskForm.set(false)">
+  <div class="modal-box" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ selectedTask()?.nomeTask }}</h3>
+      <button class="close-btn" (click)="showTaskForm.set(false)">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Esito</label>
+        <select [value]="completaData().esito"
+                (change)="updateCompleta('esito', $any($event.target).value)">
+          <option value="APPROVATO">✓ Approvato</option>
+          <option value="RIFIUTATO">✗ Rifiutato</option>
+          <option value="RICHIEDE_INTEGRAZIONE">⚠ Richiede integrazione</option>
+          <option value="COMPLETATO">Completato</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Commento</label>
+        <textarea [value]="completaData().commento ?? ''"
+                  (input)="updateCompleta('commento', $any($event.target).value)"
+                  rows="4" placeholder="Note o osservazioni sull'esito del task"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="showTaskForm.set(false)">Annulla</button>
+      <button class="btn btn-primary" (click)="completaTask()">✓ Completa task</button>
+    </div>
+  </div>
+</div>

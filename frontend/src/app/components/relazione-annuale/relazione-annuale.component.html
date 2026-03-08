@@ -1,0 +1,440 @@
+<div class="relazione-container">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div class="page-header">
+    <h1>📄 Relazione Annuale AIA</h1>
+    <p class="page-desc">Genera automaticamente la relazione annuale aggregando dati da tutti i moduli.</p>
+  </div>
+
+  <!-- ── Errore ─────────────────────────────────────────────────────── -->
+  @if (errorMsg()) {
+    <div class="alert-error">
+      {{ errorMsg() }}
+      <button class="btn-close-alert" (click)="errorMsg.set(null)">✕</button>
+    </div>
+  }
+
+  <!-- ── Pannello parametri ──────────────────────────────────────────── -->
+  <div class="param-panel">
+    <div class="param-row">
+      <div class="param-field">
+        <label>Stabilimento</label>
+        <select [ngModel]="selectedStabilimento()"
+                (ngModelChange)="selectedStabilimento.set(+$event)">
+          <option [ngValue]="null">— Seleziona —</option>
+          @for (s of stabilimenti(); track s.id) {
+            <option [ngValue]="s.id">{{ s.nome }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="param-field">
+        <label>Anno</label>
+        <select [ngModel]="selectedAnno()"
+                (ngModelChange)="selectedAnno.set(+$event)">
+          @for (a of anniDisponibili; track a) {
+            <option [ngValue]="a">{{ a }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="param-actions">
+        <button class="btn-primary"
+                (click)="loadPreview()"
+                [disabled]="!selectedStabilimento() || loadingPreview()">
+          @if (loadingPreview()) { ⏳ Caricamento... } @else { 🔍 Genera anteprima }
+        </button>
+
+        @if (previewData()) {
+          <button class="btn-download"
+                  (click)="downloadDocx()"
+                  [disabled]="loadingDocx()">
+            @if (loadingDocx()) { ⏳ Generazione... } @else { ⬇️ Relazione AIA (.docx) }
+          </button>
+          <button class="btn-download btn-xlsx"
+                  (click)="downloadAllegato2()"
+                  [disabled]="loadingXlsx()">
+            @if (loadingXlsx()) { ⏳ Generazione... } @else { 📊 Allegato 2 PMC (.xlsx) }
+          </button>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════
+       ANTEPRIMA
+  ════════════════════════════════════════════════════════════════════ -->
+  @if (previewData(); as d) {
+    <div class="preview-wrap">
+
+      <!-- Frontespizio ─────────────────────────────────────────────── -->
+      <div class="frontespizio">
+        <div class="front-logo">GMI</div>
+        <h2>RELAZIONE ANNUALE AIA</h2>
+        <p class="front-sub">Grandi Molini Italiani S.p.A.</p>
+        <p class="front-sub">Stabilimento: <strong>{{ d.stabilimentoNome }}</strong></p>
+        @if (d.stabilimentoIndirizzo) {
+          <p class="front-sub">{{ d.stabilimentoIndirizzo }}</p>
+        }
+        <p class="front-sub">Anno di riferimento: <strong>{{ d.anno }}</strong></p>
+        @if (d.stabilimentoCodiceAIA) {
+          <p class="front-sub">AIA n. {{ d.stabilimentoCodiceAIA }}</p>
+        }
+        <p class="front-data">Generata il {{ d.dataGenerazione }}</p>
+      </div>
+
+      <!-- ── Sezione 1: Prescrizioni ─────────────────────────────────── -->
+      <div class="section-block">
+        <div class="section-header" (click)="toggleSection('prescrizioni')">
+          <span class="section-num">1</span>
+          <span class="section-title">Prescrizioni AIA</span>
+          <div class="section-kpis">
+            <span class="kpi-chip">Totale: {{ d.totalePrescrizioni }}</span>
+            @if ((d.prescrizioniScadute ?? 0) > 0) {
+              <span class="kpi-chip kpi-warn">Scadute: {{ d.prescrizioniScadute }}</span>
+            }
+            @if ((d.prescrizioniInScadenza ?? 0) > 0) {
+              <span class="kpi-chip kpi-att">In scadenza: {{ d.prescrizioniInScadenza }}</span>
+            }
+          </div>
+          <span class="expand-chevron">{{ isSectionOpen('prescrizioni') ? '▲' : '▼' }}</span>
+        </div>
+        @if (isSectionOpen('prescrizioni')) {
+          <div class="section-body">
+            @if (d.prescrizioni && d.prescrizioni.length > 0) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Matrice</th>
+                    <th>Stato</th>
+                    <th>Scadenza</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of d.prescrizioni; track p.id) {
+                    <tr>
+                      <td><strong>{{ p.numero }}</strong></td>
+                      <td>{{ p.descrizione }}</td>
+                      <td>{{ p.tipo }}</td>
+                      <td>
+                        <span class="stato-badge" [class]="'stato-' + (p.stato?.toLowerCase() ?? '')">
+                          {{ p.stato }}
+                        </span>
+                      </td>
+                      <td>{{ p.dataScadenza || '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="no-data">Nessuna prescrizione registrata.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Sezione 2: PMC ──────────────────────────────────────────── -->
+      <div class="section-block">
+        <div class="section-header" (click)="toggleSection('pmc')">
+          <span class="section-num">2</span>
+          <span class="section-title">Piano di Monitoraggio e Controllo</span>
+          <div class="section-kpis">
+            <span class="kpi-chip">Punti attivi: {{ d.totalePuntiMonitoraggio }}</span>
+          </div>
+          <span class="expand-chevron">{{ isSectionOpen('pmc') ? '▲' : '▼' }}</span>
+        </div>
+        @if (isSectionOpen('pmc')) {
+          <div class="section-body">
+            @if (d.puntiMonitoraggio && d.puntiMonitoraggio.length > 0) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Codice</th>
+                    <th>Descrizione</th>
+                    <th>Tipo</th>
+                    <th>Frequenza</th>
+                    <th>Parametri</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (m of d.puntiMonitoraggio; track m.id) {
+                    <tr>
+                      <td><strong>{{ m.codice }}</strong></td>
+                      <td>{{ m.descrizione }}</td>
+                      <td>{{ m.tipo }}</td>
+                      <td>{{ m.frequenza }}</td>
+                      <td>{{ m.numParametri }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="no-data">Nessun punto di monitoraggio attivo.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Sezione 3: Conformità ───────────────────────────────────── -->
+      <div class="section-block">
+        <div class="section-header" (click)="toggleSection('conformita')">
+          <span class="section-num">3</span>
+          <span class="section-title">Conformità Parametri Ambientali</span>
+          <div class="section-kpis">
+            <span class="kpi-chip">Rilevazioni: {{ d.totaleRilevazioni }}</span>
+            <span class="kpi-chip" [class]="conformitaPercClass(d.percConformita)">
+              Conformità: {{ d.percConformita }}%
+            </span>
+            @if ((d.rilevNonConformi ?? 0) > 0) {
+              <span class="kpi-chip kpi-nc">Non conf.: {{ d.rilevNonConformi }}</span>
+            }
+          </div>
+          <span class="expand-chevron">{{ isSectionOpen('conformita') ? '▲' : '▼' }}</span>
+        </div>
+        @if (isSectionOpen('conformita')) {
+          <div class="section-body">
+            <!-- Mini KPI bar -->
+            <div class="conf-bar-wrap">
+              <div class="conf-bar">
+                @if ((d.totaleRilevazioni ?? 0) > 0) {
+                  @let percOk = ((d.rilevConformi ?? 0) / (d.totaleRilevazioni ?? 1)) * 100;
+                  @let percAtt = ((d.rilevAttenzione ?? 0) / (d.totaleRilevazioni ?? 1)) * 100;
+                  @let percNc = ((d.rilevNonConformi ?? 0) / (d.totaleRilevazioni ?? 1)) * 100;
+                  <div class="bar-ok"  [style.width.%]="percOk"  title="Conformi: {{ d.rilevConformi }}"></div>
+                  <div class="bar-att" [style.width.%]="percAtt" title="Attenzione: {{ d.rilevAttenzione }}"></div>
+                  <div class="bar-nc"  [style.width.%]="percNc"  title="Non conformi: {{ d.rilevNonConformi }}"></div>
+                }
+              </div>
+              <div class="conf-legend">
+                <span class="leg-ok">■ Conformi: {{ d.rilevConformi }}</span>
+                <span class="leg-att">■ Attenzione: {{ d.rilevAttenzione }}</span>
+                <span class="leg-nc">■ Non conformi: {{ d.rilevNonConformi }}</span>
+              </div>
+            </div>
+
+            @if (d.topNonConformi && d.topNonConformi.length > 0) {
+              <h4 class="sub-title">Parametri critici</h4>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Punto</th>
+                    <th>Parametro</th>
+                    <th>Valore</th>
+                    <th>Limite</th>
+                    <th>% Limite</th>
+                    <th>Stato</th>
+                    <th>Data</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of d.topNonConformi; track c.parametroNome) {
+                    <tr>
+                      <td>{{ c.monitoraggioCodice }}</td>
+                      <td>{{ c.parametroNome }}</td>
+                      <td class="td-num">{{ fmt(c.valoreMisurato) }} {{ c.unita }}</td>
+                      <td class="td-num">{{ c.limiteValore ?? '—' }}</td>
+                      <td class="td-num">
+                        <span [class]="statoClass(c.stato)">{{ c.percLimite }}%</span>
+                      </td>
+                      <td>
+                        <span class="stato-badge" [class]="statoClass(c.stato)">{{ c.stato }}</span>
+                      </td>
+                      <td>{{ c.dataUltimaRilev }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else if ((d.totaleRilevazioni ?? 0) > 0) {
+              <p class="no-data success-msg">✅ Tutti i parametri monitorati sono risultati conformi!</p>
+            } @else {
+              <p class="no-data">Nessuna rilevazione registrata per l'anno {{ d.anno }}.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Sezione 4: Rifiuti ──────────────────────────────────────── -->
+      <div class="section-block">
+        <div class="section-header" (click)="toggleSection('rifiuti')">
+          <span class="section-num">4</span>
+          <span class="section-title">Gestione Rifiuti</span>
+          <div class="section-kpis">
+            <span class="kpi-chip">Codici CER: {{ d.rifiutiRiepilogo?.length ?? 0 }}</span>
+          </div>
+          <span class="expand-chevron">{{ isSectionOpen('rifiuti') ? '▲' : '▼' }}</span>
+        </div>
+        @if (isSectionOpen('rifiuti')) {
+          <div class="section-body">
+            @if (d.rifiutiRiepilogo && d.rifiutiRiepilogo.length > 0) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>CER</th>
+                    <th>Descrizione</th>
+                    <th>Per.</th>
+                    <th class="td-num">Prodotta</th>
+                    <th class="td-num">Smaltita</th>
+                    <th class="td-num">Recuperata</th>
+                    <th class="td-num">Ceduta</th>
+                    <th>U.M.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (r of d.rifiutiRiepilogo; track r.codiceCer) {
+                    <tr>
+                      <td><strong>{{ r.codiceCer }}</strong></td>
+                      <td>{{ r.descrizione }}</td>
+                      <td>{{ r.pericoloso ? '⚠️' : '' }}</td>
+                      <td class="td-num">{{ fmt(r.qProdotta) }}</td>
+                      <td class="td-num">{{ fmt(r.qSmaltita) }}</td>
+                      <td class="td-num">{{ fmt(r.qRecuperata) }}</td>
+                      <td class="td-num">{{ fmt(r.qCeduta) }}</td>
+                      <td>{{ r.unita }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="no-data">Nessun movimento rifiuti registrato per l'anno {{ d.anno }}.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Sezione 5: Produzione ───────────────────────────────────── -->
+      <div class="section-block">
+        <div class="section-header" (click)="toggleSection('produzione')">
+          <span class="section-num">5</span>
+          <span class="section-title">Produzione e Consumi</span>
+          <div class="section-kpis">
+            @if (d.mesiConDati && d.mesiConDati.length > 0) {
+              <span class="kpi-chip">Mesi con dati: {{ d.mesiConDati.length }}/12</span>
+            }
+          </div>
+          <span class="expand-chevron">{{ isSectionOpen('produzione') ? '▲' : '▼' }}</span>
+        </div>
+        @if (isSectionOpen('produzione')) {
+          <div class="section-body">
+            @if (d.mesiConDati && d.mesiConDati.length > 0) {
+              <p class="mesi-info">Mesi con registro: {{ d.mesiConDati.join(', ') }}</p>
+            }
+            @if (d.produzioneRiepilogo && d.produzioneRiepilogo.length > 0) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th>Voce</th>
+                    <th class="td-num">Totale {{ d.anno }}</th>
+                    <th class="td-num">Anno Prec.</th>
+                    <th class="td-num">Δ%</th>
+                    <th>U.M.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (p of d.produzioneRiepilogo; track p.descrizione) {
+                    <tr>
+                      <td>{{ p.categoria }}</td>
+                      <td>{{ p.descrizione }}</td>
+                      <td class="td-num">{{ fmt(p.totaleAnno) }}</td>
+                      <td class="td-num">{{ fmt(p.totaleAnnoPrecedente) }}</td>
+                      <td class="td-num">
+                        @if (p.variazione != null) {
+                          <span [class]="p.variazione >= 0 ? 'var-pos' : 'var-neg'">
+                            {{ p.variazione >= 0 ? '+' : '' }}{{ p.variazione }}%
+                          </span>
+                        } @else { — }
+                      </td>
+                      <td>{{ p.unita }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="no-data">Nessun dato di produzione registrato per l'anno {{ d.anno }}.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Sezione 6: Comunicazioni ────────────────────────────────── -->
+      <div class="section-block">
+        <div class="section-header" (click)="toggleSection('comunicazioni')">
+          <span class="section-num">6</span>
+          <span class="section-title">Comunicazioni con Enti</span>
+          <div class="section-kpis">
+            <span class="kpi-chip">Totale: {{ d.totaleComunicazioni }}</span>
+            <span class="kpi-chip">Inviate: {{ d.comunicazioniInviate }}</span>
+            <span class="kpi-chip kpi-ok">Con riscontro: {{ d.comunicazioniConRiscontro }}</span>
+          </div>
+          <span class="expand-chevron">{{ isSectionOpen('comunicazioni') ? '▲' : '▼' }}</span>
+        </div>
+        @if (isSectionOpen('comunicazioni')) {
+          <div class="section-body">
+            @if (d.comunicazioni && d.comunicazioni.length > 0) {
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tipo</th>
+                    <th>Ente</th>
+                    <th>Oggetto</th>
+                    <th>Data invio</th>
+                    <th>Stato</th>
+                    <th>Riscontro</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (c of d.comunicazioni; track c.id) {
+                    <tr>
+                      <td>{{ c.tipo }}</td>
+                      <td>{{ c.ente }}</td>
+                      <td>{{ c.oggetto }}</td>
+                      <td>{{ c.dataInvio || '—' }}</td>
+                      <td>{{ c.stato }}</td>
+                      <td>{{ c.hasRiscontro ? '✅ Sì' : '⏳ No' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            } @else {
+              <p class="no-data">Nessuna comunicazione registrata per l'anno {{ d.anno }}.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- ── Footer azione ──────────────────────────────────────────── -->
+      <div class="download-bar">
+        <p>Documenti pronti per il download</p>
+        <div class="download-bar-actions">
+          <button class="btn-download-lg"
+                  (click)="downloadDocx()"
+                  [disabled]="loadingDocx()">
+            @if (loadingDocx()) {
+              ⏳ Generazione in corso...
+            } @else {
+              ⬇️ Relazione Annuale AIA {{ d.anno }} (.docx)
+            }
+          </button>
+          <button class="btn-download-lg btn-xlsx-lg"
+                  (click)="downloadAllegato2()"
+                  [disabled]="loadingXlsx()">
+            @if (loadingXlsx()) {
+              ⏳ Generazione in corso...
+            } @else {
+              📊 Allegato 2 – Sintesi PMC {{ d.anno }} (.xlsx)
+            }
+          </button>
+        </div>
+      </div>
+
+    </div>
+  } @else if (!loadingPreview()) {
+    <div class="empty-state">
+      <div class="empty-icon">📄</div>
+      <p>Seleziona stabilimento e anno, poi clicca "Genera anteprima".</p>
+    </div>
+  }
+
+</div>

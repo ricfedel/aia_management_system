@@ -1,0 +1,155 @@
+<!-- ══ Editor a schermo intero ════════════════════════════════════════════ -->
+@if (inEditor) {
+  <app-workflow-editor
+    [definizione]="definizioneDaEditare"
+    (salvato)="onSalvato($event)"
+    (annullato)="chiudiEditor()">
+  </app-workflow-editor>
+} @else {
+
+<!-- ══ Lista workflow ══════════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">⚙️ Gestione Workflow</h1>
+      <p class="page-subtitle">Definisci e gestisci i flussi BPMN personalizzati per i processi AIA</p>
+    </div>
+    <button class="btn btn-primary" (click)="nuovo()">
+      ➕ Nuovo flusso
+    </button>
+  </div>
+
+  <!-- Feedback errore -->
+  @if (errore()) {
+    <div class="alert alert-error">❌ {{ errore() }}</div>
+  }
+
+  <!-- Loading -->
+  @if (loading()) {
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <span>Caricamento flussi...</span>
+    </div>
+  } @else if (definizioni().length === 0) {
+
+    <!-- Empty state -->
+    <div class="empty-state">
+      <div class="empty-icon">🗂️</div>
+      <h3>Nessun flusso definito</h3>
+      <p>Crea il tuo primo workflow BPMN personalizzato per gestire i processi AIA.</p>
+      <button class="btn btn-primary" (click)="nuovo()">➕ Crea il primo flusso</button>
+    </div>
+
+  } @else {
+
+    <!-- Griglia card -->
+    <div class="cards-grid">
+      @for (df of definizioni(); track trackById($index, df)) {
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title-row">
+              <h3 class="card-title">{{ df.nome }}</h3>
+              <div class="badge-group">
+                @if (df.sistema) {
+                  <span class="sistema-badge">⚙️ Sistema</span>
+                }
+                <span class="version-badge">v{{ df.versione }}</span>
+              </div>
+            </div>
+            @if (df.descrizione) {
+              <p class="card-desc">{{ df.descrizione }}</p>
+            }
+          </div>
+
+          <div class="card-meta">
+            <span class="meta-item">
+              📅 {{ df.createdAt | date:'dd/MM/yyyy' }}
+            </span>
+            @if (df.creatoDa) {
+              <span class="meta-item">👤 {{ df.creatoDa }}</span>
+            }
+            <span class="status-badge" [class.active]="df.attiva" [class.inactive]="!df.attiva">
+              {{ df.attiva ? '✅ Attivo' : '⛔ Inattivo' }}
+            </span>
+          </div>
+
+          <div class="card-actions">
+            <button class="btn btn-sm btn-outline" (click)="anteprimaStep(df)" title="Mostra step">
+              🔍 Step
+            </button>
+            @if (!df.sistema) {
+              <button class="btn btn-sm btn-secondary" (click)="modifica(df)" title="Modifica nel modeler">
+                ✏️ Modifica
+              </button>
+              <button class="btn btn-sm btn-danger" (click)="chiediConfermaEliminazione(df)" title="Disattiva">
+                🗑️
+              </button>
+            } @else {
+              <button class="btn btn-sm btn-outline" (click)="modifica(df)" title="Visualizza nel modeler">
+                👁️ Visualizza
+              </button>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+</div>
+
+}
+
+<!-- ══ Modal anteprima step ══════════════════════════════════════════════════ -->
+@if (stepsModal()) {
+  <div class="modal-overlay" (click)="stepsModal.set(null)">
+    <div class="modal-box" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>🔍 Step: {{ stepsModal()!.nome }}</h3>
+        <button class="btn-close" (click)="stepsModal.set(null)">✕</button>
+      </div>
+      <div class="modal-body">
+        <ol class="steps-list">
+          @for (step of stepsModal()!.steps; track step.id) {
+            <li class="step-row">
+              <span class="step-num">{{ step.ordine }}</span>
+              <span class="step-icon">{{ tipoIcon(step.tipoTask) }}</span>
+              <div class="step-info">
+                <span class="step-nome">{{ step.nome }}</span>
+                <span class="step-tipo" [class]="'tipo-' + step.tipoTask.toLowerCase()">
+                  {{ step.tipoTask === 'USER_TASK' ? 'Task utente' : 'Task automatico' }}
+                </span>
+              </div>
+            </li>
+          }
+        </ol>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" (click)="stepsModal.set(null)">Chiudi</button>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ══ Modal conferma eliminazione ══════════════════════════════════════════ -->
+@if (confirmDelete()) {
+  <div class="modal-overlay" (click)="confirmDelete.set(null)">
+    <div class="modal-box modal-small" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>⚠️ Conferma disattivazione</h3>
+      </div>
+      <div class="modal-body">
+        <p>
+          Vuoi disattivare il flusso <strong>{{ confirmDelete()!.nome }}</strong>?<br>
+          I processi in corso non saranno interrotti, ma non sarà possibile
+          avviarne di nuovi con questa definizione.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline" (click)="confirmDelete.set(null)">Annulla</button>
+        <button class="btn btn-danger" (click)="confermaEliminazione()">Disattiva</button>
+      </div>
+    </div>
+  </div>
+}

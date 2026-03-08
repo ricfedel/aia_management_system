@@ -1,0 +1,123 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AIA Management System — Docker Compose
+#
+# Servizi:
+#   nginx    → reverse proxy + serve Angular (porta 80/443)
+#   backend  → Spring Boot (non esposto direttamente, solo raggiungibile da nginx)
+#
+# Avvio rapido:
+#   cp .env.example .env          # copia e compila le variabili
+#   docker compose up --build -d  # build e avvio
+#   docker compose logs -f        # segui i log
+#
+# Note sicurezza:
+#   - Il backend NON è esposto su porte pubbliche (nessun ports: sul servizio backend)
+#   - X-Internal-Token viene strippato da Nginx (vedere nginx/nginx.conf)
+#   - I segreti vengono passati solo via variabili d'ambiente (mai hardcoded)
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+
+  # ── Backend Spring Boot ─────────────────────────────────────────────────────
+  backend:
+    # In produzione (VPS) usa l'immagine dal registry, sovrascritta da GitHub Actions.
+    # In sviluppo locale usa: docker compose up --build
+    image: ${IMAGE_BACKEND:-aia-backend-local}
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: aia-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVER_PORT: 8080
+
+      # JWT
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
+
+      # Segreto interno BPM (deve corrispondere a quello in .env)
+      # Nginx lo stripa dalle richieste esterne (proxy_set_header X-Internal-Token "")
+      AIA_INTERNAL_SECRET: ${AIA_INTERNAL_SECRET}
+
+      # Database (H2 in prod usa file persistente sul volume)
+      SPRING_DATASOURCE_URL: jdbc:h2:file:/app/data/aia-db;AUTO_SERVER=TRUE
+      SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.h2.Driver
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-aia}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+
+      # Upload
+      FILE_UPLOAD_DIR: /app/uploads
+
+      # Email (opzionale)
+      NOTIFICATIONS_ENABLED: ${NOTIFICATIONS_ENABLED:-false}
+      NOTIFICATIONS_DEFAULT_RECIPIENT: ${NOTIFICATIONS_DEFAULT_RECIPIENT:-admin@grandimolini.it}
+      SPRING_MAIL_HOST: ${MAIL_HOST:-smtp.example.com}
+      SPRING_MAIL_PORT: ${MAIL_PORT:-587}
+      SPRING_MAIL_USERNAME: ${MAIL_USERNAME:-}
+      SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+
+    volumes:
+      # Dati H2 persistenti (non persi al riavvio del container)
+      - aia-db-data:/app/data
+      # Documenti caricati (upload AIA)
+      - aia-uploads:/app/uploads
+
+    # Il backend NON è esposto direttamente su porte pubbliche.
+    # È raggiungibile solo da nginx tramite la rete interna Docker.
+    expose:
+      - "8080"
+
+    networks:
+      - aia-internal
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s  # Spring Boot impiega ~30-60s ad avviarsi
+
+  # ── Nginx (reverse proxy + frontend Angular) ────────────────────────────────
+  nginx:
+    image: ${IMAGE_NGINX:-aia-nginx-local}
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: aia-nginx
+    restart: unless-stopped
+    ports:
+      - "${HTTP_PORT:-80}:80"
+      - "${HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Certificati SSL (Let's Encrypt / certbot)
+      - aia-certs:/etc/letsencrypt:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - aia-internal
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost/nginx-health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+# ── Volumi persistenti ─────────────────────────────────────────────────────────
+volumes:
+  aia-db-data:
+    driver: local
+  aia-uploads:
+    driver: local
+  aia-certs:
+    driver: local
+
+# ── Rete interna (backend non raggiungibile dall'esterno) ──────────────────────
+networks:
+  aia-internal:
+    driver: bridge

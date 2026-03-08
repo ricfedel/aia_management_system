@@ -1,0 +1,238 @@
+/* ── Page layout ────────────────────────────────────────────────────────────── */
+.page {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.page-title   { margin: 0; font-size: 1.5rem; font-weight: 700; color: #1a202c; }
+.page-subtitle { margin: 4px 0 0; color: #718096; font-size: 0.9rem; }
+
+/* ── States ─────────────────────────────────────────────────────────────────── */
+.loading-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #718096;
+  padding: 40px 0;
+  justify-content: center;
+}
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid #e2e8f0;
+  border-top-color: #4299e1;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #718096;
+}
+.empty-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state h3 { margin: 0 0 8px; color: #2d3748; }
+.empty-state p  { margin: 0 0 20px; }
+
+/* ── Cards grid ─────────────────────────────────────────────────────────────── */
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,.08);
+  transform: translateY(-2px);
+}
+
+.card-header { display: flex; flex-direction: column; gap: 6px; }
+
+.card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.card-title { margin: 0; font-size: 1rem; font-weight: 600; color: #1a202c; flex: 1; }
+
+.badge-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.sistema-badge {
+  background: #faf5ff;
+  color: #6b21a8;
+  border: 1px solid #e9d5ff;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.version-badge {
+  background: #ebf4ff;
+  color: #2b6cb0;
+  border: 1px solid #bee3f8;
+  border-radius: 20px;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.card-desc { margin: 0; font-size: 0.85rem; color: #718096; }
+
+/* ── Meta ───────────────────────────────────────────────────────────────────── */
+.card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #718096;
+}
+.meta-item { display: flex; align-items: center; gap: 4px; }
+
+.status-badge {
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+.status-badge.active   { background: #f0fff4; color: #276749; border: 1px solid #c6f6d5; }
+.status-badge.inactive { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+
+/* ── Card actions ───────────────────────────────────────────────────────────── */
+.card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+
+.btn-primary   { background: #4299e1; color: #fff; }
+.btn-primary:hover:not(:disabled)   { background: #3182ce; }
+.btn-secondary { background: #e2e8f0; color: #2d3748; }
+.btn-secondary:hover:not(:disabled) { background: #cbd5e0; }
+.btn-outline   { background: transparent; color: #4a5568; border: 1px solid #cbd5e0; }
+.btn-outline:hover:not(:disabled)   { background: #f7fafc; }
+.btn-danger    { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+.btn-danger:hover:not(:disabled)    { background: #fed7d7; }
+
+/* ── Alert ──────────────────────────────────────────────────────────────────── */
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+.alert-error { background: #fff5f5; color: #c53030; border: 1px solid #fed7d7; }
+
+/* ── Modal ──────────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  width: 480px;
+  max-width: 94vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,.2);
+}
+.modal-small { width: 400px; }
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+}
+.modal-header h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+
+.btn-close {
+  background: none; border: none;
+  font-size: 1.1rem; cursor: pointer;
+  color: #718096; padding: 4px 8px; border-radius: 4px;
+}
+.btn-close:hover { background: #f7fafc; color: #2d3748; }
+
+.modal-body   { padding: 20px; overflow-y: auto; flex: 1; }
+.modal-footer { padding: 12px 20px; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ── Steps list ─────────────────────────────────────────────────────────────── */
+.steps-list {
+  list-style: none; padding: 0; margin: 0;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.step-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: #f7fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+.step-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: #4299e1; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; flex-shrink: 0;
+}
+.step-icon { font-size: 1.1rem; flex-shrink: 0; }
+.step-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.step-nome { font-weight: 500; color: #2d3748; font-size: 0.9rem; }
+.step-tipo { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.tipo-user_task    { color: #2b6cb0; }
+.tipo-service_task { color: #c05621; }

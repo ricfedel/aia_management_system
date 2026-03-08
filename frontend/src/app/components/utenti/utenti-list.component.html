@@ -1,0 +1,247 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">{{ 'utenti.title' | translate }}</h2>
+      @if (isAdmin()) {
+        <div class="header-actions">
+          <button class="btn btn-secondary" (click)="exportExcel()">
+            📥 Export Excel
+          </button>
+          <button class="btn btn-primary" (click)="openCreateForm()">
+            ➕ {{ 'utenti.create' | translate }}
+          </button>
+        </div>
+      }
+    </div>
+
+    <!-- Admin Only Warning -->
+    @if (!isAdmin()) {
+      <div class="admin-warning">
+        <p>⚠️ {{ 'utenti.adminOnly' | translate }}</p>
+      </div>
+    }
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>{{ 'utenti.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- Utenti Table -->
+    @if (!loading() && isAdmin()) {
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ 'utenti.username' | translate }}</th>
+              <th>{{ 'utenti.fullName' | translate }}</th>
+              <th>{{ 'utenti.email' | translate }}</th>
+              <th>{{ 'utenti.ruolo' | translate }}</th>
+              <th>{{ 'utenti.stabilimenti' | translate }}</th>
+              <th>{{ 'utenti.stato' | translate }}</th>
+              <th>{{ 'utenti.azioni' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (utente of utenti(); track utente.id) {
+              <tr>
+                <td><strong>{{ utente.username }}</strong></td>
+                <td>{{ utente.nome }} {{ utente.cognome }}</td>
+                <td>{{ utente.email }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getRuoloClass(utente.ruolo)">
+                    {{ utente.ruolo | enumTranslate:'ruolo' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="stabilimenti-list">
+                    {{ getStabilimentiNames(utente.stabilimenti) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="getStatoClass(utente.attivo)">
+                    {{ (utente.attivo ? 'utenti.attivo' : 'utenti.inattivo') | translate }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-edit"
+                            (click)="openEditForm(utente)"
+                            [title]="'common.edit' | translate">
+                      ✏️
+                    </button>
+                    <button class="btn btn-sm btn-danger"
+                            (click)="deleteUtente(utente)"
+                            [title]="'common.delete' | translate">
+                      🗑️
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="no-data">
+                  {{ 'utenti.noUtenti' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Form Modal -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ (editMode() ? 'utenti.editUtente' : 'utenti.newUtente') | translate }}</h3>
+          <button class="btn-close" (click)="closeForm()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <form (ngSubmit)="saveUtente()">
+            <!-- Username e Email -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="username">{{ 'utenti.usernameRequired' | translate }}</label>
+                <input type="text"
+                       id="username"
+                       class="form-control"
+                       [ngModel]="formData().username"
+                       (ngModelChange)="updateUsername($event)"
+                       name="username"
+                       [disabled]="editMode()"
+                       required>
+                <small class="form-help">{{ editMode() ? 'Username non modificabile' : 'Username univoco per il login' }}</small>
+              </div>
+
+              <div class="form-group">
+                <label for="email">{{ 'utenti.emailRequired' | translate }}</label>
+                <input type="email"
+                       id="email"
+                       class="form-control"
+                       [ngModel]="formData().email"
+                       (ngModelChange)="updateEmail($event)"
+                       name="email"
+                       required>
+              </div>
+            </div>
+
+            <!-- Nome e Cognome -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="nome">{{ 'utenti.fullNameRequired' | translate }}</label>
+                <input type="text"
+                       id="nome"
+                       class="form-control"
+                       [ngModel]="formData().nome"
+                       (ngModelChange)="updateNome($event)"
+                       name="nome"
+                       placeholder="Nome"
+                       required>
+              </div>
+
+              <div class="form-group">
+                <label for="cognome">&nbsp;</label>
+                <input type="text"
+                       id="cognome"
+                       class="form-control"
+                       [ngModel]="formData().cognome"
+                       (ngModelChange)="updateCognome($event)"
+                       name="cognome"
+                       placeholder="Cognome"
+                       required>
+              </div>
+            </div>
+
+            <!-- Password (solo per nuovi utenti) -->
+            @if (!editMode()) {
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="password">{{ 'utenti.passwordRequired' | translate }}</label>
+                  <input type="password"
+                         id="password"
+                         class="form-control"
+                         [ngModel]="formData().password"
+                         (ngModelChange)="updatePassword($event)"
+                         name="password"
+                         minlength="8"
+                         required>
+                  <small class="form-help">{{ 'utenti.passwordMinLength' | translate }}</small>
+                </div>
+
+                <div class="form-group">
+                  <label for="confirmPassword">{{ 'utenti.confirmPasswordRequired' | translate }}</label>
+                  <input type="password"
+                         id="confirmPassword"
+                         class="form-control"
+                         [ngModel]="formData().confirmPassword"
+                         (ngModelChange)="updateConfirmPassword($event)"
+                         name="confirmPassword"
+                         minlength="8"
+                         required>
+                </div>
+              </div>
+            }
+
+            <!-- Ruolo -->
+            <div class="form-group">
+              <label for="ruolo">{{ 'utenti.ruoloRequired' | translate }}</label>
+              <select id="ruolo"
+                      class="form-control"
+                      [ngModel]="formData().ruolo"
+                      (ngModelChange)="updateRuolo($event)"
+                      name="ruolo"
+                      required>
+                @for (ruolo of ruoli; track ruolo) {
+                  <option [value]="ruolo">{{ ruolo | enumTranslate:'ruolo' }}</option>
+                }
+              </select>
+              <small class="form-help">
+                <strong>ADMIN:</strong> Gestione completa sistema<br>
+                <strong>RESPONSABILE:</strong> Gestione stabilimenti assegnati<br>
+                <strong>OPERATORE:</strong> Visualizzazione dati
+              </small>
+            </div>
+
+            <!-- Stabilimenti Assegnati -->
+            <div class="form-group">
+              <label for="stabilimenti">{{ 'utenti.stabilimentiLabel' | translate }}</label>
+              <select id="stabilimenti"
+                      class="form-control"
+                      multiple
+                      size="5"
+                      (change)="updateStabilimenti($event)"
+                      name="stabilimenti">
+                @for (stab of stabilimenti(); track stab.id) {
+                  <option [value]="stab.id"
+                          [selected]="formData().stabilimentiIds?.includes(stab.id!)">
+                    {{ stab.nome }} - {{ stab.citta }}
+                  </option>
+                }
+              </select>
+              <small class="form-help">{{ 'utenti.stabilimentiHelp' | translate }} (CTRL+click per selezione multipla)</small>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+              <button type="button"
+                      class="btn btn-secondary"
+                      (click)="closeForm()">
+                {{ 'utenti.cancel' | translate }}
+              </button>
+              <button type="submit"
+                      class="btn btn-primary">
+                💾 {{ 'utenti.save' | translate }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+</div>

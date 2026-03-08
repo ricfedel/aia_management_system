@@ -1,0 +1,218 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">{{ 'prescrizioni.title' | translate }}</h2>
+      <div class="header-actions">
+        <button class="btn btn-secondary" (click)="exportExcel()">
+          📥 Export Excel
+        </button>
+        @if (canEdit()) {
+          <button class="btn btn-primary" (click)="openCreateForm()">
+            ➕ {{ 'prescrizioni.create' | translate }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>{{ 'prescrizioni.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- Prescrizioni Table -->
+    @if (!loading()) {
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ 'prescrizioni.codice' | translate }}</th>
+              <th>{{ 'prescrizioni.descrizione' | translate }}</th>
+              <th>{{ 'prescrizioni.stabilimento' | translate }}</th>
+              <th>{{ 'prescrizioni.matriceAmbientale' | translate }}</th>
+              <th>{{ 'prescrizioni.stato' | translate }}</th>
+              <th>{{ 'prescrizioni.priorita' | translate }}</th>
+              <th>{{ 'prescrizioni.azioni' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (prescrizione of prescrizioni(); track prescrizione.id) {
+              <tr>
+                <td><strong>{{ prescrizione.codice }}</strong></td>
+                <td>
+                  {{ prescrizione.descrizione }}
+                  @if (prescrizione.note) {
+                    <div class="note-preview">{{ prescrizione.note }}</div>
+                  }
+                </td>
+                <td>{{ prescrizione.stabilimento?.nome }}</td>
+                <td>{{ prescrizione.matriceAmbientale | enumTranslate:'matriceAmbientale' }}</td>
+                <td>
+                  <span class="badge" [ngClass]="getStatoClass(prescrizione.stato || '')">
+                    {{ prescrizione.stato | enumTranslate:'statoPrescrizione' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [ngClass]="getPrioritaClass(prescrizione.priorita || '')">
+                    {{ prescrizione.priorita | enumTranslate:'priorita' }}
+                  </span>
+                </td>
+                <td>
+                  <div class="action-buttons">
+                    @if (canEdit()) {
+                      <button class="btn btn-sm btn-edit"
+                              (click)="openEditForm(prescrizione)"
+                              [title]="'common.edit' | translate">
+                        ✏️
+                      </button>
+                    }
+                    @if (canDelete()) {
+                      <button class="btn btn-sm btn-danger"
+                              (click)="deletePrescrizione(prescrizione)"
+                              [title]="'common.delete' | translate">
+                        🗑️
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="no-data">
+                  {{ 'prescrizioni.noPrescrizioni' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Form Modal -->
+  @if (showForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content modal-large" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ (editMode() ? 'prescrizioni.editPrescrizione' : 'prescrizioni.newPrescrizione') | translate }}</h3>
+          <button class="btn-close" (click)="closeForm()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <form (ngSubmit)="savePrescrizione()">
+            <!-- Codice e Stabilimento -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="codice">{{ 'prescrizioni.codiceRequired' | translate }}</label>
+                <input type="text"
+                       id="codice"
+                       class="form-control"
+                       [ngModel]="formData().codice"
+                       (ngModelChange)="updateCodice($event)"
+                       name="codice"
+                       required>
+              </div>
+
+              <div class="form-group">
+                <label for="stabilimentoId">{{ 'prescrizioni.stabilimentoRequired' | translate }}</label>
+                <select id="stabilimentoId"
+                        class="form-control"
+                        [ngModel]="formData().stabilimentoId"
+                        (ngModelChange)="updateStabilimentoId($event)"
+                        name="stabilimentoId"
+                        required>
+                  @for (stab of stabilimenti(); track stab.id) {
+                    <option [value]="stab.id">{{ stab.nome }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Descrizione -->
+            <div class="form-group">
+              <label for="descrizione">{{ 'prescrizioni.descrizioneRequired' | translate }}</label>
+              <textarea id="descrizione"
+                        class="form-control"
+                        [ngModel]="formData().descrizione"
+                        (ngModelChange)="updateDescrizione($event)"
+                        name="descrizione"
+                        rows="3"
+                        required></textarea>
+            </div>
+
+            <!-- Matrice, Stato, Priorità -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="matriceAmbientale">{{ 'prescrizioni.matriceRequired' | translate }}</label>
+                <select id="matriceAmbientale"
+                        class="form-control"
+                        [ngModel]="formData().matriceAmbientale"
+                        (ngModelChange)="updateMatrice($event)"
+                        name="matriceAmbientale"
+                        required>
+                  @for (matrice of matriciAmbientali; track matrice) {
+                    <option [value]="matrice">{{ matrice | enumTranslate:'matriceAmbientale' }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="stato">{{ 'prescrizioni.statoRequired' | translate }}</label>
+                <select id="stato"
+                        class="form-control"
+                        [ngModel]="formData().stato"
+                        (ngModelChange)="updateStato($event)"
+                        name="stato"
+                        required>
+                  @for (stato of stati; track stato) {
+                    <option [value]="stato">{{ stato | enumTranslate:'statoPrescrizione' }}</option>
+                  }
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="priorita">{{ 'prescrizioni.prioritaRequired' | translate }}</label>
+                <select id="priorita"
+                        class="form-control"
+                        [ngModel]="formData().priorita"
+                        (ngModelChange)="updatePriorita($event)"
+                        name="priorita"
+                        required>
+                  @for (priorita of prioritaOptions; track priorita) {
+                    <option [value]="priorita">{{ priorita | enumTranslate:'priorita' }}</option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Note -->
+            <div class="form-group">
+              <label for="note">{{ 'prescrizioni.note' | translate }}</label>
+              <textarea id="note"
+                        class="form-control"
+                        [ngModel]="formData().note"
+                        (ngModelChange)="updateNote($event)"
+                        name="note"
+                        rows="2"></textarea>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+              <button type="button"
+                      class="btn btn-secondary"
+                      (click)="closeForm()">
+                {{ 'prescrizioni.cancel' | translate }}
+              </button>
+              <button type="submit"
+                      class="btn btn-primary">
+                💾 {{ 'prescrizioni.save' | translate }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+</div>

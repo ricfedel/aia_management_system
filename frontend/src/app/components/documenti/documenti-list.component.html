@@ -1,0 +1,224 @@
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title">{{ 'documenti.title' | translate }}</h2>
+      @if (canUpload()) {
+        <button class="btn btn-primary" (click)="openUploadForm()">
+          📤 {{ 'documenti.upload' | translate }}
+        </button>
+      }
+    </div>
+
+    <!-- Loading -->
+    @if (loading()) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>{{ 'documenti.loading' | translate }}</p>
+      </div>
+    }
+
+    <!-- Documenti Table -->
+    @if (!loading()) {
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>{{ 'documenti.nome' | translate }}</th>
+              <th>{{ 'documenti.tipo' | translate }}</th>
+              <th>{{ 'documenti.stabilimento' | translate }}</th>
+              <th>{{ 'documenti.anno' | translate }}</th>
+              <th>{{ 'documenti.dimensione' | translate }}</th>
+              <th>{{ 'documenti.dataCaricamento' | translate }}</th>
+              <th>{{ 'documenti.azioni' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (documento of documenti(); track documento.id) {
+              <tr>
+                <td>
+                  <strong>{{ documento.nome }}</strong>
+                  @if (documento.descrizione) {
+                    <div class="doc-description">
+                      {{ documento.descrizione }}
+                    </div>
+                  }
+                </td>
+                <td>
+                  <span class="badge badge-tipo">{{ documento.tipoDocumento | enumTranslate:'tipoDocumento' }}</span>
+                </td>
+                <td>{{ documento.stabilimento?.nome }}</td>
+                <td>{{ documento.anno }}</td>
+                <td>{{ formatFileSize(documento.fileSize) }}</td>
+                <td>{{ documento.createdAt | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="btn btn-sm btn-analyze"
+                            (click)="apriEstrazione(documento)"
+                            title="Analizza con OCR / AI">
+                      🔍
+                    </button>
+                    <button class="btn btn-sm btn-download"
+                            (click)="downloadDocumento(documento)"
+                            title="Scarica">
+                      ⬇️
+                    </button>
+                    @if (canDelete()) {
+                      <button class="btn btn-sm btn-danger"
+                              (click)="deleteDocumento(documento)"
+                              title="Elimina">
+                        🗑️
+                      </button>
+                    }
+                  </div>
+                  <!-- Badge stato DMS -->
+                  @if (documento.statoDocumento && documento.statoDocumento !== 'BOZZA') {
+                    <div class="stato-dms-badge"
+                         [style.background]="getStatoColore(documento.statoDocumento) + '20'"
+                         [style.color]="getStatoColore(documento.statoDocumento)">
+                      {{ getStatoLabel(documento.statoDocumento) }}
+                    </div>
+                  }
+                </td>
+              </tr>
+            } @empty {
+              <tr>
+                <td colspan="7" class="no-data">
+                  {{ 'documenti.noDocuments' | translate }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+
+  <!-- Upload Form Modal -->
+  @if (showUploadForm()) {
+    <div class="modal-overlay" (click)="closeUploadForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ 'documenti.newDocument' | translate }}</h3>
+          <button class="btn-close" (click)="closeUploadForm()">×</button>
+        </div>
+
+        <div class="modal-body">
+          <form (ngSubmit)="uploadDocumento()">
+            <!-- File Selection -->
+            <div class="form-group">
+              <label>{{ 'documenti.fileRequired' | translate }}</label>
+              <input type="file"
+                     class="form-control"
+                     (change)="onFileSelected($event)"
+                     accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png"
+                     required>
+              @if (selectedFile()) {
+                <small class="form-help">
+                  {{ 'documenti.fileSelected' | translate }}: {{ selectedFile()!.name }} ({{ formatFileSize(selectedFile()!.size) }})
+                </small>
+              }
+            </div>
+
+            <!-- Stabilimento -->
+            <div class="form-group">
+              <label for="stabilimentoId">{{ 'documenti.stabilimentoRequired' | translate }}</label>
+              <select id="stabilimentoId"
+                      class="form-control"
+                      [ngModel]="uploadData().stabilimentoId"
+                      (ngModelChange)="updateStabilimentoId($event)"
+                      name="stabilimentoId"
+                      required>
+                @for (stab of stabilimenti(); track stab.id) {
+                  <option [value]="stab.id">
+                    {{ stab.nome }}
+                  </option>
+                }
+              </select>
+            </div>
+
+            <!-- Form Row: Anno e Tipo -->
+            <div class="form-row">
+              <div class="form-group">
+                <label for="anno">{{ 'documenti.annoRequired' | translate }}</label>
+                <input type="number"
+                       id="anno"
+                       class="form-control"
+                       [ngModel]="uploadData().anno"
+                       (ngModelChange)="updateAnno($event)"
+                       name="anno"
+                       min="2000"
+                       max="2100"
+                       required>
+              </div>
+
+              <div class="form-group">
+                <label for="tipo">{{ 'documenti.tipoRequired' | translate }}</label>
+                <select id="tipo"
+                        class="form-control"
+                        [ngModel]="uploadData().tipo"
+                        (ngModelChange)="updateTipo($event)"
+                        name="tipo"
+                        required>
+                  <option value="">{{ 'documenti.selectOption' | translate }}</option>
+                  @for (tipo of tipiDocumento; track tipo) {
+                    <option [value]="tipo">
+                      {{ tipo | enumTranslate:'tipoDocumento' }}
+                    </option>
+                  }
+                </select>
+              </div>
+            </div>
+
+            <!-- Descrizione -->
+            <div class="form-group">
+              <label for="descrizione">{{ 'documenti.descrizioneLabel' | translate }}</label>
+              <textarea id="descrizione"
+                        class="form-control"
+                        [ngModel]="uploadData().descrizione"
+                        (ngModelChange)="updateDescrizione($event)"
+                        name="descrizione"
+                        rows="3"
+                        [placeholder]="'documenti.descrizioneOptional' | translate"></textarea>
+            </div>
+
+            <!-- Upload Progress -->
+            @if (uploading()) {
+              <div class="upload-progress">
+                <div class="progress-bar">
+                  <div class="progress-fill" [style.width.%]="uploadProgress()"></div>
+                </div>
+                <p class="progress-text">{{ 'documenti.uploading' | translate }} {{ uploadProgress() }}%</p>
+              </div>
+            }
+
+            <!-- Action Buttons -->
+            <div class="form-actions">
+              <button type="button"
+                      class="btn btn-secondary"
+                      (click)="closeUploadForm()"
+                      [disabled]="uploading()">
+                {{ 'common.cancel' | translate }}
+              </button>
+              <button type="submit"
+                      class="btn btn-primary"
+                      [disabled]="!selectedFile() || uploading()">
+                {{ uploading() ? ('documenti.uploading' | translate) : ('📤 ' + ('documenti.uploadButton' | translate)) }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ── Drawer: Estrazione OCR / AI ───────────────────────────────────── -->
+@if (documentoInEstrazione()) {
+  <app-estrazione-dms
+    [documentoId]="documentoInEstrazione()!.id"
+    [documentoNome]="documentoInEstrazione()!.nome"
+    [stabilimentoIdDefault]="documentoInEstrazione()!.stabilimento?.id"
+    (chiudi)="chiudiEstrazione()"
+    (confermato)="onEstrazioneConfermata($event)"
+  ></app-estrazione-dms>
+}
