@@ -41,7 +41,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./backend
-          dockerfile: ./backend/Dockerfile
+          file: ./backend/Dockerfile
           push: true
           platforms: linux/arm64   # server Hetzner ARM64 (CAX)
           tags: |
@@ -56,7 +56,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          dockerfile: ./nginx/Dockerfile
+          file: ./nginx/Dockerfile
           push: true
           platforms: linux/arm64   # server Hetzner ARM64 (CAX)
           tags: |
