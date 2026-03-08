@@ -29,7 +29,7 @@ WORKDIR /app
 COPY --from=build /app/target/aia-management-*.jar app.jar
 
 # Copia la cartella uploads (verrà sovramontata da un volume in produzione)
-RUN mkdir -p uploads && chown -R aia:aia /app
+RUN mkdir -p uploads data && chown -R aia:aia /app
 
 USER aia
 
