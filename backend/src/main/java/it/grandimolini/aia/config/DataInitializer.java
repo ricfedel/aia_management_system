@@ -1,16 +1,21 @@
 package it.grandimolini.aia.config;
 
-import it.grandimolini.aia.model.*;
-import it.grandimolini.aia.repository.*;
+import java.util.Set;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDate;
-import java.util.Set;
+import it.grandimolini.aia.model.DefinizioneFlusso;
+import it.grandimolini.aia.model.Stabilimento;
+import it.grandimolini.aia.model.User;
+import it.grandimolini.aia.repository.DefinizioneFlussoRepository;
+import it.grandimolini.aia.repository.StabilimentoRepository;
+import it.grandimolini.aia.repository.UserRepository;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
@@ -27,99 +32,63 @@ public class DataInitializer implements CommandLineRunner {
     private StabilimentoRepository stabilimentoRepository;
 
     @Autowired
-    private PrescrizioneRepository prescrizioneRepository;
-
-    @Autowired
-    private MonitoraggioRepository monitoraggioRepository;
-
-    @Autowired
-    private DatiAmbientaliRepository datiAmbientaliRepository;
-
-    @Autowired
-    private ScadenzaRepository scadenzaRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private SqlLoaderService sqlLoaderService;
+
+    /** Se true, esegue data.sql su PostgreSQL (solo primo deploy). Default: false. */
+    @Value("${app.initialize-data:false}")
+    private boolean initializeData;
+
     @Override
     public void run(String... args) throws Exception {
-        // ── Seed workflow predefiniti (già idempotenti internamente) ──────────
+        // ── Seed workflow predefiniti (idempotenti: skippa se già esistono) ───
         seedFlussoEstrazioneOCR();
         seedFlussoRinnovoAia();
         seedFlussoNonConformita();
         seedFlussoIntegrazioneEnte();
 
-        // ── Se data.sql ha già popolato il DB (stabilimenti reali presenti),
-        //    creare solo gli utenti di accesso e saltare tutti i dati demo ─────
-        if (stabilimentoRepository.count() > 0) {
-            log.info("DataInitializer: {} stabilimenti già presenti (caricati da data.sql), skip demo data.",
-                    stabilimentoRepository.count());
-            if (userRepository.count() == 0) {
-                // Recupera stabilimenti reali per associarli agli utenti
-                java.util.List<Stabilimento> tutti = stabilimentoRepository.findAll();
-                Stabilimento primo = tutti.get(0);
-                Set<Stabilimento> tuttiSet = new java.util.HashSet<>(tutti);
-
-                User admin = new User();
-                admin.setUsername("admin");
-                admin.setEmail("admin@grandimolini.it");
-                admin.setPassword(passwordEncoder.encode("Admin@123456"));
-                admin.setFullName("Amministratore Sistema");
-                admin.setRuolo(User.Ruolo.ADMIN);
-                admin.setAttivo(true);
-                admin.setStabilimenti(tuttiSet);
-                userRepository.save(admin);
-
-                User responsabile = new User();
-                responsabile.setUsername("mauro.pasetto");
-                responsabile.setEmail("mauro.pasetto@grandimolini.it");
-                responsabile.setPassword(passwordEncoder.encode("Resp@123456"));
-                responsabile.setFullName("Mauro Pasetto");
-                responsabile.setRuolo(User.Ruolo.RESPONSABILE);
-                responsabile.setAttivo(true);
-                responsabile.setStabilimenti(Set.of(primo));
-                userRepository.save(responsabile);
-
-                System.out.println("✓ Utenti creati su dati reali AIA:");
-                System.out.println("  - admin / Admin@123456 (tutti gli stabilimenti)");
-                System.out.println("  - mauro.pasetto / Resp@123456 (" + primo.getNome() + ")");
+        // ── Carica data.sql se il DB è vuoto ─────────────────────────────────
+        // Spring Boot 4 non esegue automaticamente data.sql con HikariCP:
+        // lo facciamo noi via ResourceDatabasePopulator, idempotente (skip se
+        // stabilimenti già presenti) oppure se app.initialize-data=true.
+        if (stabilimentoRepository.count() == 0 || initializeData) {
+            if (initializeData && stabilimentoRepository.count() > 0) {
+                log.info("DataInitializer: app.initialize-data=true ma dati già presenti, skip data.sql.");
             } else {
-                log.info("DataInitializer: utenti già presenti, nessuna azione.");
+                log.info("DataInitializer: DB vuoto — eseguo data.sql...");
+                // SqlLoaderService usa Session.doWork(): stessa connessione JDBC
+                // che Hibernate usa per il DDL → le tabelle sono garantite visibili.
+                sqlLoaderService.loadDataSql();
+                log.info("DataInitializer: data.sql eseguito ({} stabilimenti caricati).",
+                        stabilimentoRepository.count());
             }
+        } else {
+            log.info("DataInitializer: {} stabilimenti già presenti, skip data.sql.",
+                    stabilimentoRepository.count());
+        }
+
+        // ── Crea utenti di accesso se non presenti ────────────────────────────
+        // Le password devono essere hashate con BCrypt a runtime, non possono
+        // stare in data.sql in chiaro.
+        if (userRepository.count() > 0) {
+            log.info("DataInitializer: utenti già presenti, skip.");
             return;
         }
 
-        // ── DB vuoto: crea dati demo completi ────────────────────────────────
-        log.info("DataInitializer: DB vuoto, carico dati demo.");
+        java.util.List<Stabilimento> tutti = stabilimentoRepository.findAll();
+        if (tutti.isEmpty()) {
+            log.warn("DataInitializer: nessuno stabilimento trovato — utenti non creati.");
+            return;
+        }
 
-        Stabilimento livorno = new Stabilimento();
-        livorno.setNome("Grandi Molini Livorno");
-        livorno.setCitta("Livorno");
-        livorno.setIndirizzo("Via del Porto 123");
-        livorno.setNumeroAIA("AIA-LI-2020-001");
-        livorno.setDataRilascioAIA(LocalDate.of(2020, 3, 15));
-        livorno.setDataScadenzaAIA(LocalDate.of(2030, 3, 15));
-        livorno.setEnteCompetente("Regione Toscana");
-        livorno.setResponsabileAmbientale("Mauro Pasetto");
-        livorno.setEmail("ambiente.livorno@grandimolini.it");
-        livorno = stabilimentoRepository.save(livorno);
+        Stabilimento primo = tutti.get(0);
+        Set<Stabilimento> tuttiSet = new java.util.HashSet<>(tutti);
 
-        Stabilimento venezia = new Stabilimento();
-        venezia.setNome("Grandi Molini Venezia");
-        venezia.setCitta("Venezia");
-        venezia.setIndirizzo("Via della Laguna 456");
-        venezia.setNumeroAIA("AIA-VE-2019-002");
-        venezia.setDataRilascioAIA(LocalDate.of(2019, 6, 20));
-        venezia.setDataScadenzaAIA(LocalDate.of(2029, 6, 20));
-        venezia.setEnteCompetente("Regione Veneto");
-        venezia.setResponsabileAmbientale("Mauro Pasetto");
-        venezia.setEmail("ambiente.venezia@grandimolini.it");
-        venezia = stabilimentoRepository.save(venezia);
-
-        // Crea utenti di esempio
         User admin = new User();
         admin.setUsername("admin");
         admin.setEmail("admin@grandimolini.it");
@@ -127,7 +96,7 @@ public class DataInitializer implements CommandLineRunner {
         admin.setFullName("Amministratore Sistema");
         admin.setRuolo(User.Ruolo.ADMIN);
         admin.setAttivo(true);
-        admin.setStabilimenti(Set.of(livorno, venezia));
+        admin.setStabilimenti(tuttiSet);
         userRepository.save(admin);
 
         User responsabile = new User();
@@ -137,144 +106,12 @@ public class DataInitializer implements CommandLineRunner {
         responsabile.setFullName("Mauro Pasetto");
         responsabile.setRuolo(User.Ruolo.RESPONSABILE);
         responsabile.setAttivo(true);
-        responsabile.setStabilimenti(Set.of(livorno));
+        responsabile.setStabilimenti(Set.of(primo));
         userRepository.save(responsabile);
 
-        User operatore = new User();
-        operatore.setUsername("operatore.venezia");
-        operatore.setEmail("operatore.venezia@grandimolini.it");
-        operatore.setPassword(passwordEncoder.encode("Oper@123456"));
-        operatore.setFullName("Operatore Venezia");
-        operatore.setRuolo(User.Ruolo.OPERATORE);
-        operatore.setAttivo(true);
-        operatore.setStabilimenti(Set.of(venezia));
-        userRepository.save(operatore);
-
-        System.out.println("✓ Utenti di test creati:");
-        System.out.println("  - admin / Admin@123456 (accesso a tutti gli stabilimenti)");
-        System.out.println("  - mauro.pasetto / Resp@123456 (accesso a Livorno)");
-        System.out.println("  - operatore.venezia / Oper@123456 (accesso a Venezia)");
-
-        // Crea prescrizioni di esempio
-        Prescrizione p1 = new Prescrizione();
-        p1.setStabilimento(livorno);
-        p1.setCodice("PRES-LI-2024-001");
-        p1.setDescrizione("Monitoraggio emissioni atmosferiche camino E1");
-        p1.setMatriceAmbientale(Prescrizione.MatriceAmbientale.ARIA);
-        p1.setStato(Prescrizione.StatoPrescrizione.IN_LAVORAZIONE);
-        p1.setDataEmissione(LocalDate.of(2024, 1, 15));
-        p1.setDataScadenza(LocalDate.of(2024, 12, 31));
-        p1.setEnteEmittente("Regione Toscana");
-        p1.setPriorita(Prescrizione.Priorita.ALTA);
-        p1 = prescrizioneRepository.save(p1);
-
-        Prescrizione p2 = new Prescrizione();
-        p2.setStabilimento(venezia);
-        p2.setCodice("PRES-VE-2024-001");
-        p2.setDescrizione("Controllo scarichi idrici");
-        p2.setMatriceAmbientale(Prescrizione.MatriceAmbientale.ACQUA);
-        p2.setStato(Prescrizione.StatoPrescrizione.APERTA);
-        p2.setDataEmissione(LocalDate.of(2024, 2, 1));
-        p2.setDataScadenza(LocalDate.of(2024, 6, 30));
-        p2.setEnteEmittente("ARPA Veneto");
-        p2.setPriorita(Prescrizione.Priorita.MEDIA);
-        p2 = prescrizioneRepository.save(p2);
-
-        // Crea monitoraggi
-        Monitoraggio m1 = new Monitoraggio();
-        m1.setStabilimento(livorno);
-        m1.setCodice("MON-LI-CAM-E1");
-        m1.setDescrizione("Monitoraggio camino E1");
-        m1.setTipoMonitoraggio(Monitoraggio.TipoMonitoraggio.EMISSIONI_ATMOSFERA);
-        m1.setPuntoEmissione("Camino E1");
-        m1.setFrequenza(Monitoraggio.FrequenzaMonitoraggio.MENSILE);
-        m1.setProssimaScadenza(LocalDate.now().plusDays(15));
-        m1.setLaboratorio("Lab Analisi SRL");
-        m1 = monitoraggioRepository.save(m1);
-
-        Monitoraggio m2 = new Monitoraggio();
-        m2.setStabilimento(venezia);
-        m2.setCodice("MON-VE-SCR-S1");
-        m2.setDescrizione("Scarico S1");
-        m2.setTipoMonitoraggio(Monitoraggio.TipoMonitoraggio.SCARICHI_IDRICI);
-        m2.setPuntoEmissione("Scarico S1");
-        m2.setFrequenza(Monitoraggio.FrequenzaMonitoraggio.SEMESTRALE);
-        m2.setProssimaScadenza(LocalDate.now().plusDays(30));
-        m2.setLaboratorio("EcoTest Lab");
-        m2 = monitoraggioRepository.save(m2);
-
-        // Crea dati ambientali di esempio
-        DatiAmbientali d1 = new DatiAmbientali();
-        d1.setMonitoraggio(m1);
-        d1.setDataCampionamento(LocalDate.now().minusDays(30));
-        d1.setParametro("NOx");
-        d1.setValoreMisurato(120.0);
-        d1.setUnitaMisura("mg/Nm3");
-        d1.setLimiteAutorizzato(150.0);
-        d1.setLaboratorio("Lab Analisi SRL");
-        d1.setNote("Valore conforme");
-        datiAmbientaliRepository.save(d1);
-
-        DatiAmbientali d2 = new DatiAmbientali();
-        d2.setMonitoraggio(m1);
-        d2.setDataCampionamento(LocalDate.now().minusDays(15));
-        d2.setParametro("NOx");
-        d2.setValoreMisurato(145.0);
-        d2.setUnitaMisura("mg/Nm3");
-        d2.setLimiteAutorizzato(150.0);
-        d2.setLaboratorio("Lab Analisi SRL");
-        d2.setNote("Valore in attenzione - vicino al limite");
-        datiAmbientaliRepository.save(d2);
-
-        DatiAmbientali d3 = new DatiAmbientali();
-        d3.setMonitoraggio(m2);
-        d3.setDataCampionamento(LocalDate.now().minusDays(60));
-        d3.setParametro("COD");
-        d3.setValoreMisurato(180.0);
-        d3.setUnitaMisura("mg/l");
-        d3.setLimiteAutorizzato(160.0);
-        d3.setLaboratorio("EcoTest Lab");
-        d3.setNote("Superamento limite - richiesta integrazione");
-        datiAmbientaliRepository.save(d3);
-
-        // Crea scadenze
-        Scadenza s1 = new Scadenza();
-        s1.setStabilimento(livorno);
-        s1.setPrescrizione(p1);
-        s1.setTitolo("Invio rapporto mensile emissioni");
-        s1.setDescrizione("Invio rapporto mensile emissioni camino E1 a Regione Toscana");
-        s1.setTipoScadenza(Scadenza.TipoScadenza.MONITORAGGIO_PMC);
-        s1.setDataScadenza(LocalDate.now().plusDays(10));
-        s1.setStato(Scadenza.StatoScadenza.PENDING);
-        s1.setPriorita(Scadenza.Priorita.ALTA);
-        s1.setResponsabile("Mauro Pasetto");
-        s1.setEmailNotifica("ambiente.livorno@grandimolini.it");
-        scadenzaRepository.save(s1);
-
-        Scadenza s2 = new Scadenza();
-        s2.setStabilimento(livorno);
-        s2.setTitolo("Relazione Annuale AIA 2024");
-        s2.setDescrizione("Invio relazione annuale AIA entro il 30 aprile");
-        s2.setTipoScadenza(Scadenza.TipoScadenza.RELAZIONE_ANNUALE);
-        s2.setDataScadenza(LocalDate.of(2025, 4, 30));
-        s2.setStato(Scadenza.StatoScadenza.PENDING);
-        s2.setPriorita(Scadenza.Priorita.URGENTE);
-        s2.setResponsabile("Mauro Pasetto");
-        scadenzaRepository.save(s2);
-
-        Scadenza s3 = new Scadenza();
-        s3.setStabilimento(venezia);
-        s3.setPrescrizione(p2);
-        s3.setTitolo("Integrazione richiesta da ARPA");
-        s3.setDescrizione("Fornire documentazione integrativa su scarichi idrici");
-        s3.setTipoScadenza(Scadenza.TipoScadenza.INTEGRAZIONE_ENTE);
-        s3.setDataScadenza(LocalDate.now().plusDays(5));
-        s3.setStato(Scadenza.StatoScadenza.PENDING);
-        s3.setPriorita(Scadenza.Priorita.URGENTE);
-        s3.setResponsabile("Mauro Pasetto");
-        scadenzaRepository.save(s3);
-
-        System.out.println("✓ Dati di esempio inizializzati con successo!");
+        System.out.println("✓ Utenti creati:");
+        System.out.println("  - admin / Admin@123456  (tutti gli stabilimenti)");
+        System.out.println("  - mauro.pasetto / Resp@123456  (" + primo.getNome() + ")");
     }
 
     /**

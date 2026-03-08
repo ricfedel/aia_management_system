@@ -1,15 +1,13 @@
 -- ============================================================
--- AIA Management System – SEED DATA (H2 dev)
+-- AIA Management System – SEED DATA (PostgreSQL)
 -- stabilimento_1: GMI S.p.A. – Livorno  (AIA Regione Toscana – numero da acquisire)
 -- stabilimento_2: Promolog S.r.l. – Coriano Veronese  (AIA vigente: Decreto n.19082/2024, Regione Veneto)
 --
--- Eseguito da Spring Boot DOPO la creazione dello schema Hibernate
--- (spring.jpa.defer-datasource-initialization=true).
--- DataInitializer.java è idempotente: salta stabilimenti/prescrizioni/
--- monitoraggi se già presenti; crea solo utenti e workflow definitions.
+-- Eseguito da SqlLoaderService (via Session.doWork) al primo avvio,
+-- quando la tabella stabilimenti è vuota.
+-- Gli INSERT sono ordinati parent→child: nessun vincolo FK da disabilitare.
+-- Al termine vengono resettate le sequenze PostgreSQL.
 -- ============================================================
-
-SET REFERENTIAL_INTEGRITY FALSE;
 
 -- ═══════════════════════════════════════════════════════════════
 -- STABILIMENTI
@@ -447,11 +445,6 @@ VALUES
 (1,'E118','CONTROLLO_QUALITA','forni cottura sperimentale pane',  NULL, NULL, NULL, NULL, TRUE, NULL, NULL, NULL, NULL,
    'Prove di panificazione. Dichiarato non soggetto ad autorizzazione: All. IV lettera f) e jj)', TRUE);
 
--- ============================================================
--- FINE SEED DATA
--- ============================================================
-SET REFERENTIAL_INTEGRITY TRUE;
-
 -- ════════════════════════════════════════════════════════════════════
 -- SEZIONE 4: DOCUMENTI AIA (cartella 'documenti aia' Promolog/GMI)
 -- ════════════════════════════════════════════════════════════════════
@@ -675,3 +668,85 @@ VALUES
    CURRENT_TIMESTAMP, 'seed', CURRENT_TIMESTAMP);
 
 -- Totale documenti inseriti: 52  (stabilimento_1=5, stabilimento_2=47)
+-- ═══════════════════════════════════════════════════════════════
+-- DATI AMBIENTALI (campionamenti reali su monitoraggi presenti)
+-- StatoConformita: CONFORME se <= limite*0.8, ATTENZIONE se <= limite, NON_CONFORME se > limite
+-- Monitoraggi usati: 1001=E1 (aria, VLE 5 mg/Nm3), 1201=S1 (IDR), 1202=S2 (IDR)
+-- ═══════════════════════════════════════════════════════════════
+INSERT INTO dati_ambientali (monitoraggio_id, data_campionamento, parametro, valore_misurato, unita_misura, limite_autorizzato, stato_conformita, laboratorio, rapporto_prova, note, created_at)
+VALUES
+-- E1 – Camino trasporto nave (Livorno, stabilimento_1)
+  (1001, '2025-09-15', 'Polveri Totali', 2.1, 'mg/Nm3', 5.0, 'CONFORME',      'Agrolab Italia LAB 0147 L', 'RdP-2025-09-E1-001', 'Campionamento annuale – conforme BAT 28 FDM', CURRENT_TIMESTAMP),
+  (1001, '2025-12-10', 'Polveri Totali', 3.8, 'mg/Nm3', 5.0, 'CONFORME',      'Agrolab Italia LAB 0147 L', 'RdP-2025-12-E1-001', 'Campionamento annuale – conforme BAT 28 FDM', CURRENT_TIMESTAMP),
+  (1001, '2026-01-20', 'Polveri Totali', 4.3, 'mg/Nm3', 5.0, 'ATTENZIONE',    'Agrolab Italia LAB 0147 L', 'RdP-2026-01-E1-001', 'Valore in attenzione: >80% del limite BAT, verificare efficienza filtro maniche', CURRENT_TIMESTAMP),
+-- E30 – Pulitura grano tenero (Livorno, stabilimento_1)
+  (1030, '2025-10-08', 'Polveri Totali', 1.9, 'mg/Nm3', 5.0, 'CONFORME',      'ARPAT – Lab. Livorno',      NULL,                 'Campionamento PMC – conforme', CURRENT_TIMESTAMP),
+  (1030, '2026-02-14', 'Polveri Totali', 5.7, 'mg/Nm3', 5.0, 'NON_CONFORME',  'ARPAT – Lab. Livorno',      'RdP-2026-02-E30-001','SUPERAMENTO VLE: 5.7 > 5.0 mg/Nm3. Richiesta analisi cause e piano correttivo', CURRENT_TIMESTAMP),
+-- S1 – Scarico acque reflue domestiche palazzina (Livorno)
+  (1201, '2025-08-29', 'COD',           65.0, 'mg/l',   160.0,'CONFORME',      'Agrolab Italia LAB 0147 L', 'S1_rdp 379093-265652','Conforme Tab.3 All.5 D.Lgs. 152/2006', CURRENT_TIMESTAMP),
+  (1201, '2025-10-16', 'COD',           118.0,'mg/l',   160.0,'CONFORME',      'Agrolab Italia LAB 0147 L', 'S1_rdp 379093-265653','Conforme – nella norma', CURRENT_TIMESTAMP),
+  (1201, '2026-01-15', 'COD',           142.0,'mg/l',   160.0,'ATTENZIONE',    'Agrolab Italia LAB 0147 L', 'RdP-2026-01-S1-001', 'Valore in attenzione: >80% del VLE. Monitorare impianto depurazione', CURRENT_TIMESTAMP),
+  (1201, '2025-08-29', 'BOD5',          22.0, 'mg/l',   40.0, 'CONFORME',      'Agrolab Italia LAB 0147 L', 'S1_rdp 379093-265652','Conforme', CURRENT_TIMESTAMP),
+  (1201, '2025-10-16', 'Solidi Sospesi', 38.0,'mg/l',   80.0, 'CONFORME',      'Agrolab Italia LAB 0147 L', 'S1_rdp 379077-269735','Conforme', CURRENT_TIMESTAMP),
+-- S2 – Scarico acque reflue zona insacco (Livorno)
+  (1202, '2025-08-29', 'COD',           55.0, 'mg/l',   160.0,'CONFORME',      'Agrolab Italia LAB 0147 L', 'S2_rdp 379093-265653','Conforme', CURRENT_TIMESTAMP),
+  (1202, '2025-10-16', 'COD',           89.0, 'mg/l',   160.0,'CONFORME',      'Agrolab Italia LAB 0147 L', 'S2_rdp 381109-269748','Conforme – nella norma', CURRENT_TIMESTAMP),
+  (1202, '2026-02-20', 'BOD5',          31.0, 'mg/l',   40.0, 'CONFORME',      'Agrolab Italia LAB 0147 L', 'RdP-2026-02-S2-001', 'Conforme', CURRENT_TIMESTAMP);
+
+-- ═══════════════════════════════════════════════════════════════
+-- SCADENZE (reference prescrizioni reali: 101..128 = Livorno, 201..207 = Albaredo)
+-- TipoScadenza: MONITORAGGIO_PMC | RELAZIONE_ANNUALE | INTEGRAZIONE_ENTE | RINNOVO_AIA | COMUNICAZIONE | ADEMPIMENTO_PRESCRIZIONE
+-- Stato:        PENDING | IN_CORSO | COMPLETATA | SCADUTA
+-- Priorita:     BASSA | MEDIA | ALTA | URGENTE
+-- ═══════════════════════════════════════════════════════════════
+INSERT INTO scadenze (stabilimento_id, prescrizione_id, titolo, descrizione, tipo_scadenza, data_scadenza, stato, priorita, responsabile, email_notifica, giorni_preavviso, note, created_at)
+VALUES
+-- Scadenze FUTURE / IMMINENTI (entro 30 giorni)
+  (1, 101, 'Campionamento PMC – E1 Trasporto nave (annuale)',
+      'Campionamento emissioni camino E1 con laboratorio accreditato. VLE: polveri totali 5 mg/Nm³ (BAT 28 FDM). Risultati da trasmettere ad ARPAT.',
+      'MONITORAGGIO_PMC', '2026-03-20', 'PENDING', 'ALTA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 20,
+      'Pianificare accesso laboratorio accreditato con preavviso ≥10 gg', CURRENT_TIMESTAMP),
+  (1, 116, 'Campionamento S1/S2 – Scarichi idrici (annuale)',
+      'Campionamento acque reflue scarichi S1 e S2. Parametri: COD, BOD5, solidi sospesi. VLE Tab.3 All.5 D.Lgs. 152/2006.',
+      'MONITORAGGIO_PMC', '2026-03-25', 'IN_CORSO', 'ALTA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 15,
+      'Campionamento programmato con Agrolab. Richiedere RdP accreditato ACCREDIA', CURRENT_TIMESTAMP),
+  (2, 205, 'Invio relazione PMC 2025 – Promolog Albaredo',
+      'Trasmissione a mezzo PEC della relazione annuale PMC 2025 a: Provincia di Verona, ARPAV e Comune di Albaredo d''Adige (Det. n.2635/2023 par. gestione PMC).',
+      'RELAZIONE_ANNUALE', '2026-04-30', 'PENDING', 'ALTA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 30,
+      NULL, CURRENT_TIMESTAMP),
+-- Scadenza futura media priorità
+  (1, 115, 'Studio diffusionale nuove sorgenti emissive (ATM-15)',
+      'Aggiornamento studio diffusionale a seguito attivazione nuove sorgenti emissive E99-E102 / E109-E111 previste entro 2025. Prescrizione par. 5.2.16.',
+      'ADEMPIMENTO_PRESCRIZIONE', '2026-06-30', 'PENDING', 'MEDIA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 60,
+      'Coinvolgere tecnico per aggiornamento modello diffusionale', CURRENT_TIMESTAMP),
+-- Scadenza COMPLETATA
+  (1, 127, 'Invio relazione PMC 2024 – GMI Livorno',
+      'Trasmissione PEC sintesi risultati PMC 2024 a: Regione Toscana AIA, Comune Livorno, ARPAT Livorno, USL Toscana Nord-Ovest. Allegato B par.1.1.2.',
+      'RELAZIONE_ANNUALE', '2025-04-30', 'COMPLETATA', 'ALTA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 30,
+      'Completata con PEC del 24/04/2025', CURRENT_TIMESTAMP),
+-- Scadenze SCADUTE (passate, non completate – da gestire)
+  (1, 109, 'Comunicazione range buon funzionamento E91/E92 (ATM-09)',
+      'Comunicare ad ARPAT e Regione Toscana il range di buon funzionamento dei sistemi di abbattimento E91/E92. Scadenza prescritta: 31/10/2024.',
+      'ADEMPIMENTO_PRESCRIZIONE', '2024-10-31', 'SCADUTA', 'URGENTE', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 20,
+      'SCADUTA: verificare se già trasmessa, altrimenti comunicare con ritardo e motivazione', CURRENT_TIMESTAMP),
+  (1, 113, 'Messa in esercizio E50/E51/E98/E112-E114 + controlli analitici (ATM-14)',
+      'Comunicare messa in esercizio e avviare controlli analitici art.269 c.3 per E50/E51/E98/E112/E113/E114 (entro fine 2024). Prescrizione par. 5.2.12.',
+      'ADEMPIMENTO_PRESCRIZIONE', '2024-12-31', 'SCADUTA', 'ALTA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 20,
+      NULL, CURRENT_TIMESTAMP);
+
+-- ═══════════════════════════════════════════════════════════════
+-- RESET SEQUENZE PostgreSQL
+-- Necessario dopo INSERT con ID espliciti: la sequenza IDENTITY
+-- rimane ferma all'inizio e genererebbe duplicati al primo INSERT
+-- fatto tramite JPA. pg_get_serial_sequence trova la sequenza
+-- legata alla colonna IDENTITY/SERIAL.
+-- ═══════════════════════════════════════════════════════════════
+SELECT setval(pg_get_serial_sequence('stabilimenti',          'id'), COALESCE((SELECT MAX(id) FROM stabilimenti),          1));
+SELECT setval(pg_get_serial_sequence('prescrizioni',          'id'), COALESCE((SELECT MAX(id) FROM prescrizioni),          1));
+SELECT setval(pg_get_serial_sequence('monitoraggi',           'id'), COALESCE((SELECT MAX(id) FROM monitoraggi),           1));
+SELECT setval(pg_get_serial_sequence('parametri_monitoraggio','id'), COALESCE((SELECT MAX(id) FROM parametri_monitoraggio), 1));
+SELECT setval(pg_get_serial_sequence('anagrafica_camini',     'id'), COALESCE((SELECT MAX(id) FROM anagrafica_camini),     1));
+SELECT setval(pg_get_serial_sequence('documenti',             'id'), COALESCE((SELECT MAX(id) FROM documenti),             1));
+SELECT setval(pg_get_serial_sequence('dati_ambientali',       'id'), COALESCE((SELECT MAX(id) FROM dati_ambientali),       1));
+SELECT setval(pg_get_serial_sequence('scadenze',              'id'), COALESCE((SELECT MAX(id) FROM scadenze),              1));
+
