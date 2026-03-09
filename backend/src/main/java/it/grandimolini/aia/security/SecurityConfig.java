@@ -46,7 +46,8 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/h2-console/**").permitAll()
+                .requestMatchers("/api/auth/**", "/h2-console/**",
+                                 "/actuator/health", "/actuator/health/**").permitAll()
                 .anyRequest().authenticated()
             )
             // Entrambi i filtri custom vanno prima di UsernamePasswordAuthenticationFilter.
