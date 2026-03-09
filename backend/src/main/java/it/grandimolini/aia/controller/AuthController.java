@@ -32,6 +32,12 @@ public class AuthController {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
+    /** Endpoint di liveness usato dall'healthcheck Docker/Kubernetes — nessuna auth richiesta. */
+    @GetMapping("/health")
+    public ResponseEntity<String> health() {
+        return ResponseEntity.ok("OK");
+    }
+
     @PostMapping("/register")
     public ResponseEntity<UserDTO> register(@Valid @RequestBody CreateUserRequest request) {
         User user = userService.create(request);

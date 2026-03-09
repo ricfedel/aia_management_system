@@ -95,11 +95,11 @@ services:
       - aia-internal
 
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/auth/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 120s  # Spring Boot impiega ~30-60s ad avviarsi
+      start_period: 90s   # Spring Boot impiega ~15-30s, 90s di margine sufficiente
 
   # ── Nginx (reverse proxy + frontend Angular) ────────────────────────────────
   nginx:

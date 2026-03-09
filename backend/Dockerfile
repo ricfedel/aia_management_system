@@ -41,10 +41,8 @@ EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=prod
 
 # Health check: Spring Boot Actuator o endpoint di base
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD wget -qO- http://localhost:8080/api/auth/health 2>/dev/null || \
-        wget -qO- http://localhost:8080/actuator/health 2>/dev/null || \
-        exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=3 \
+    CMD wget -qO- http://localhost:8080/api/auth/health 2>/dev/null || exit 1
 
 ENTRYPOINT ["java", \
     "-XX:+UseContainerSupport", \

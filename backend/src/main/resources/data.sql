@@ -734,19 +734,6 @@ VALUES
       'ADEMPIMENTO_PRESCRIZIONE', '2024-12-31', 'SCADUTA', 'ALTA', 'Mauro Pasetto', 'mauro.pasetto@grandimolini.it', 20,
       NULL, CURRENT_TIMESTAMP);
 
--- ═══════════════════════════════════════════════════════════════
--- RESET SEQUENZE PostgreSQL
--- Necessario dopo INSERT con ID espliciti: la sequenza IDENTITY
--- rimane ferma all'inizio e genererebbe duplicati al primo INSERT
--- fatto tramite JPA. pg_get_serial_sequence trova la sequenza
--- legata alla colonna IDENTITY/SERIAL.
--- ═══════════════════════════════════════════════════════════════
-SELECT setval(pg_get_serial_sequence('stabilimenti',          'id'), COALESCE((SELECT MAX(id) FROM stabilimenti),          1));
-SELECT setval(pg_get_serial_sequence('prescrizioni',          'id'), COALESCE((SELECT MAX(id) FROM prescrizioni),          1));
-SELECT setval(pg_get_serial_sequence('monitoraggi',           'id'), COALESCE((SELECT MAX(id) FROM monitoraggi),           1));
-SELECT setval(pg_get_serial_sequence('parametri_monitoraggio','id'), COALESCE((SELECT MAX(id) FROM parametri_monitoraggio), 1));
-SELECT setval(pg_get_serial_sequence('anagrafica_camini',     'id'), COALESCE((SELECT MAX(id) FROM anagrafica_camini),     1));
-SELECT setval(pg_get_serial_sequence('documenti',             'id'), COALESCE((SELECT MAX(id) FROM documenti),             1));
-SELECT setval(pg_get_serial_sequence('dati_ambientali',       'id'), COALESCE((SELECT MAX(id) FROM dati_ambientali),       1));
-SELECT setval(pg_get_serial_sequence('scadenze',              'id'), COALESCE((SELECT MAX(id) FROM scadenze),              1));
+-- Il reset delle sequenze PostgreSQL viene eseguito da SqlLoaderService
+-- in Java dopo questo script, per gestire correttamente IDENTITY vs SERIAL.
 
