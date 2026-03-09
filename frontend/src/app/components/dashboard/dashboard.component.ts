@@ -8,6 +8,7 @@ import { DatiAmbientali, StatoConformita } from '../../models/dati-ambientali.mo
 import { Scadenza } from '../../models/scadenza.model';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { EnumTranslatePipe } from '../../pipes/enum-translate.pipe';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-dashboard',
@@ -108,7 +109,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    const url = `http://localhost:8080/api/export/relazione-annuale/${this.relazioneStabilimentoId}/anno/${this.relazioneAnno}`;
+    const url = `${environment.apiUrl}/export/relazione-annuale/${this.relazioneStabilimentoId}/anno/${this.relazioneAnno}`;
     window.open(url, '_blank');
     this.showRelazioneForm = false;
   }
