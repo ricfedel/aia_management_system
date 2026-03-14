@@ -1,6 +1,8 @@
 export interface Prescrizione {
   id?: number;
   stabilimento?: any;
+  stabilimentoId?: number;
+  stabilimentoNome?: string;
   codice: string;
   descrizione: string;
   matriceAmbientale: MatriceAmbientale;

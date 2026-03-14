@@ -1,7 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
+import { AuthService } from '../../services/auth.service';
 import { Stabilimento } from '../../models/stabilimento.model';
 import { Prescrizione } from '../../models/prescrizione.model';
 import { DatiAmbientali, StatoConformita } from '../../models/dati-ambientali.model';
@@ -38,7 +40,11 @@ export class DashboardComponent implements OnInit {
 
   StatoConformita = StatoConformita;
 
-  constructor(private apiService: ApiService) {
+  constructor(
+    private apiService: ApiService,
+    private authService: AuthService,
+    private router: Router
+  ) {
     // Genera lista anni (ultimi 5 anni)
     const currentYear = new Date().getFullYear();
     for (let i = 0; i < 5; i++) {
@@ -82,6 +88,28 @@ export class DashboardComponent implements OnInit {
       },
       error: (error) => console.error('Errore nel caricamento dati non conformi:', error)
     });
+  }
+
+  getPrescrizioniAperte(): Prescrizione[] {
+    return this.prescrizioni.filter(p => p.stato !== 'CHIUSA').slice(0, 5);
+  }
+
+  get ruolo(): string {
+    return this.authService.currentUserValue?.ruolo || '';
+  }
+
+  get isAdmin(): boolean {
+    return this.ruolo === 'ADMIN';
+  }
+
+  get isResponsabileOrAdmin(): boolean {
+    return this.ruolo === 'ADMIN' || this.ruolo === 'RESPONSABILE';
+  }
+
+  navigateTo(route: string, enabled: boolean): void {
+    if (enabled) {
+      this.router.navigate([route]);
+    }
   }
 
   getConformitaClass(stato: string): string {

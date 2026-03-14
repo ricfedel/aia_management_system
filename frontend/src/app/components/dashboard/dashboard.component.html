@@ -4,25 +4,33 @@
 
   <!-- Cards statistiche -->
   <div class="stats-grid">
-    <div class="stat-card">
+    <div class="stat-card"
+         [class.stat-card--clickable]="isAdmin"
+         (click)="navigateTo('/stabilimenti', isAdmin)">
       <div class="stat-icon">🏭</div>
       <div class="stat-value">{{ stats.stabilimentiAttivi }}</div>
       <div class="stat-label">{{ 'dashboard.stabilimentiAttivi' | translate }}</div>
     </div>
 
-    <div class="stat-card">
+    <div class="stat-card"
+         [class.stat-card--clickable]="isResponsabileOrAdmin"
+         (click)="navigateTo('/prescrizioni', isResponsabileOrAdmin)">
       <div class="stat-icon">📋</div>
       <div class="stat-value">{{ stats.prescrizioniAperte }}</div>
       <div class="stat-label">{{ 'dashboard.prescrizioniAperte' | translate }}</div>
     </div>
 
-    <div class="stat-card warning">
+    <div class="stat-card warning"
+         [class.stat-card--clickable]="isResponsabileOrAdmin"
+         (click)="navigateTo('/scadenze', isResponsabileOrAdmin)">
       <div class="stat-icon">⏰</div>
       <div class="stat-value">{{ stats.scadenzeImminenti }}</div>
       <div class="stat-label">{{ 'dashboard.scadenzeImminenti' | translate }}</div>
     </div>
 
-    <div class="stat-card danger">
+    <div class="stat-card danger"
+         [class.stat-card--clickable]="isResponsabileOrAdmin"
+         (click)="navigateTo('/dati-ambientali', isResponsabileOrAdmin)">
       <div class="stat-icon">⚠️</div>
       <div class="stat-value">{{ stats.nonConformita }}</div>
       <div class="stat-label">{{ 'dashboard.nonConformita' | translate }}</div>
@@ -33,7 +41,9 @@
   <div class="content-grid">
     <!-- Stabilimenti -->
     <div class="section">
-      <h2>🏭 {{ 'dashboard.stabilimentiSection' | translate }}</h2>
+      <h2>🏭 {{ 'dashboard.stabilimentiSection' | translate }}
+        <a *ngIf="isAdmin" class="section-link" (click)="navigateTo('/stabilimenti', isAdmin)">Gestisci →</a>
+      </h2>
       <div class="table-container">
         <table>
           <thead>
@@ -46,7 +56,9 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let stabilimento of stabilimenti">
+            <tr *ngFor="let stabilimento of stabilimenti"
+                [class.row-clickable]="isAdmin"
+                (click)="navigateTo('/stabilimenti', isAdmin)">
               <td><strong>{{ stabilimento.nome }}</strong></td>
               <td>{{ stabilimento.citta }}</td>
               <td>{{ stabilimento.numeroAIA }}</td>
@@ -63,7 +75,9 @@
 
     <!-- Scadenze Imminenti -->
     <div class="section">
-      <h2>⏰ {{ 'dashboard.scadenzeSection' | translate }}</h2>
+      <h2>⏰ {{ 'dashboard.scadenzeSection' | translate }}
+        <a *ngIf="isResponsabileOrAdmin" class="section-link" (click)="navigateTo('/scadenze', isResponsabileOrAdmin)">Gestisci →</a>
+      </h2>
       <div class="table-container">
         <table>
           <thead>
@@ -75,7 +89,9 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let scadenza of scadenzeProssime">
+            <tr *ngFor="let scadenza of scadenzeProssime"
+                [class.row-clickable]="isResponsabileOrAdmin"
+                (click)="navigateTo('/scadenze', isResponsabileOrAdmin)">
               <td><strong>{{ scadenza.titolo }}</strong></td>
               <td>{{ scadenza.dataScadenza | date: 'dd/MM/yyyy' }}</td>
               <td><span [class]="getPrioritaClass(scadenza.priorita || '')">{{ scadenza.priorita | enumTranslate:'priorita' }}</span></td>
@@ -91,7 +107,9 @@
 
     <!-- Prescrizioni Aperte -->
     <div class="section">
-      <h2>📋 {{ 'dashboard.prescrizioniSection' | translate }}</h2>
+      <h2>📋 {{ 'dashboard.prescrizioniSection' | translate }}
+        <a *ngIf="isResponsabileOrAdmin" class="section-link" (click)="navigateTo('/prescrizioni', isResponsabileOrAdmin)">Gestisci →</a>
+      </h2>
       <div class="table-container">
         <table>
           <thead>
@@ -104,7 +122,9 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let prescrizione of prescrizioni.slice(0, 5)">
+            <tr *ngFor="let prescrizione of getPrescrizioniAperte()"
+                [class.row-clickable]="isResponsabileOrAdmin"
+                (click)="navigateTo('/prescrizioni', isResponsabileOrAdmin)">
               <td><strong>{{ prescrizione.codice }}</strong></td>
               <td>{{ prescrizione.descrizione }}</td>
               <td>{{ prescrizione.matriceAmbientale | enumTranslate:'matriceAmbientale' }}</td>
@@ -121,7 +141,9 @@
 
     <!-- Dati Non Conformi -->
     <div class="section">
-      <h2>⚠️ {{ 'dashboard.datiNonConformiSection' | translate }}</h2>
+      <h2>⚠️ {{ 'dashboard.datiNonConformiSection' | translate }}
+        <a *ngIf="isResponsabileOrAdmin" class="section-link" (click)="navigateTo('/dati-ambientali', isResponsabileOrAdmin)">Gestisci →</a>
+      </h2>
       <div class="table-container">
         <table>
           <thead>
@@ -134,7 +156,9 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let dato of datiNonConformi">
+            <tr *ngFor="let dato of datiNonConformi"
+                [class.row-clickable]="isResponsabileOrAdmin"
+                (click)="navigateTo('/dati-ambientali', isResponsabileOrAdmin)">
               <td>{{ dato.dataCampionamento | date: 'dd/MM/yyyy' }}</td>
               <td><strong>{{ dato.parametro }}</strong></td>
               <td>{{ dato.valoreMisurato }} {{ dato.unitaMisura }}</td>

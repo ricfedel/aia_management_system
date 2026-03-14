@@ -47,7 +47,7 @@
                     <div class="note-preview">{{ prescrizione.note }}</div>
                   }
                 </td>
-                <td>{{ prescrizione.stabilimento?.nome }}</td>
+                <td>{{ prescrizione.stabilimentoNome || prescrizione.stabilimento?.nome }}</td>
                 <td>{{ prescrizione.matriceAmbientale | enumTranslate:'matriceAmbientale' }}</td>
                 <td>
                   <span class="badge" [ngClass]="getStatoClass(prescrizione.stato || '')">
