@@ -1,5 +1,6 @@
 package it.grandimolini.aia.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -91,12 +92,15 @@ public class Stabilimento {
     @Column(nullable = false)
     private Boolean attivo = true;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "stabilimento", cascade = CascadeType.ALL)
     private List<Prescrizione> prescrizioni = new ArrayList<>();
 
+    @JsonIgnore
     @OneToMany(mappedBy = "stabilimento", cascade = CascadeType.ALL)
     private List<Monitoraggio> monitoraggi = new ArrayList<>();
 
+    @JsonIgnore
     @ManyToMany(mappedBy = "stabilimenti")
     private Set<User> utenti = new HashSet<>();
 }

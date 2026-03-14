@@ -9,6 +9,67 @@
       }
     </div>
 
+    <!-- ── Barra filtri ──────────────────────────────────────────────── -->
+    <div class="filter-bar">
+
+      <!-- Stabilimento -->
+      <div class="filter-group">
+        <label class="filter-label">Stabilimento</label>
+        <select class="filter-select"
+                [ngModel]="filterStabilimentoId()"
+                (ngModelChange)="onFilterStabilimento($event)">
+          <option [value]="null">Tutti gli stabilimenti</option>
+          @for (stab of stabilimenti(); track stab.id) {
+            <option [value]="stab.id">{{ stab.nome }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Anno -->
+      <div class="filter-group">
+        <label class="filter-label">Anno</label>
+        <select class="filter-select"
+                [ngModel]="filterAnno()"
+                (ngModelChange)="onFilterAnno($event)">
+          <option [value]="null">Tutti gli anni</option>
+          @for (anno of anniDisponibili; track anno) {
+            <option [value]="anno">{{ anno }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Tipo documento -->
+      <div class="filter-group">
+        <label class="filter-label">Tipo</label>
+        <select class="filter-select"
+                [ngModel]="filterTipo()"
+                (ngModelChange)="onFilterTipo($event)">
+          <option [value]="null">Tutti i tipi</option>
+          @for (tipo of tipiDocumento; track tipo) {
+            <option [value]="tipo">{{ tipo | enumTranslate:'tipoDocumento' }}</option>
+          }
+        </select>
+      </div>
+
+      <!-- Ricerca libera -->
+      <div class="filter-group filter-group--grow">
+        <label class="filter-label">Ricerca</label>
+        <input class="filter-input"
+               type="text"
+               placeholder="Nome, descrizione..."
+               [ngModel]="filterKeyword()"
+               (ngModelChange)="onFilterKeyword($event)">
+      </div>
+
+      <!-- Reset filtri -->
+      @if (filtriAttivi) {
+        <button class="btn btn-secondary filter-reset" (click)="resetFiltri()" title="Rimuovi filtri">
+          ✕ Reset
+        </button>
+      }
+
+    </div>
+
     <!-- Loading -->
     @if (loading()) {
       <div class="loading">

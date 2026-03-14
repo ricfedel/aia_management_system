@@ -1,5 +1,6 @@
 package it.grandimolini.aia.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -81,6 +82,7 @@ public class Prescrizione {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "prescrizione", cascade = CascadeType.ALL)
     private List<Documento> documenti = new ArrayList<>();
 

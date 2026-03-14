@@ -19,19 +19,26 @@ import { ConfermaEstrazioneResponse } from '../../models/estrazione.model';
   styleUrl: './documenti-list.component.css'
 })
 export class DocumentiListComponent implements OnInit {
-  // Dependency injection funzionale
-  private readonly apiService = inject(ApiService);
+  private readonly apiService  = inject(ApiService);
   private readonly authService = inject(AuthService);
-  private readonly destroyRef = inject(DestroyRef);
+  private readonly destroyRef  = inject(DestroyRef);
 
-  // Signals per state management
-  documenti = signal<Documento[]>([]);
+  // ── Dati ────────────────────────────────────────────────────────────────
+  documenti    = signal<Documento[]>([]);
   stabilimenti = signal<Stabilimento[]>([]);
-  loading = signal(true);
-  showUploadForm = signal(false);
-  uploading = signal(false);
-  uploadProgress = signal(0);
-  selectedFile = signal<File | null>(null);
+  loading      = signal(true);
+
+  // ── Filtri ───────────────────────────────────────────────────────────────
+  filterStabilimentoId = signal<number | null>(null);
+  filterAnno           = signal<number | null>(null);
+  filterTipo           = signal<TipoDocumento | null>(null);
+  filterKeyword        = signal<string>('');
+
+  // ── Upload ──────────────────────────────────────────────────────────────
+  showUploadForm  = signal(false);
+  uploading       = signal(false);
+  uploadProgress  = signal(0);
+  selectedFile    = signal<File | null>(null);
 
   uploadData = signal({
     stabilimentoId: 0,
@@ -43,65 +50,68 @@ export class DocumentiListComponent implements OnInit {
   // Costante per tipi documento
   readonly tipiDocumento = Object.values(TipoDocumento);
 
-  // ── Estrazione OCR / AI ───────────────────────────────────────────────────
+  // Anno corrente e range per il filtro
+  readonly annoCorrente = new Date().getFullYear();
+  readonly anniDisponibili = Array.from(
+    { length: this.annoCorrente - 2018 },
+    (_, i) => this.annoCorrente - i
+  );
+
+  // ── Estrazione OCR / AI ─────────────────────────────────────────────────
   documentoInEstrazione = signal<Documento | null>(null);
 
-  apriEstrazione(documento: Documento) {
-    this.documentoInEstrazione.set(documento);
-  }
-
-  chiudiEstrazione() {
-    this.documentoInEstrazione.set(null);
-  }
+  apriEstrazione(documento: Documento) { this.documentoInEstrazione.set(documento); }
+  chiudiEstrazione()                   { this.documentoInEstrazione.set(null); }
 
   onEstrazioneConfermata(response: ConfermaEstrazioneResponse) {
     this.documentoInEstrazione.set(null);
-    // Ricarica la lista per aggiornare i badge di stato
     this.loadDocumenti();
-    // Feedback rapido
     if (response.scadenzeCreate > 0 || response.prescrizioniCreate > 0) {
       alert(`✅ ${response.messaggio}`);
     }
   }
 
-  // ── Helpers stato DMS ────────────────────────────────────────────────────
-  getStatoLabel(stato: StatoDocumento): string {
-    return STATO_DOCUMENTO_LABELS[stato] ?? stato;
-  }
+  // ── Helpers stato DMS ───────────────────────────────────────────────────
+  getStatoLabel(stato: StatoDocumento): string { return STATO_DOCUMENTO_LABELS[stato] ?? stato; }
+  getStatoColore(stato: StatoDocumento): string { return STATO_DOCUMENTO_COLORS[stato] ?? '#94a3b8'; }
 
-  getStatoColore(stato: StatoDocumento): string {
-    return STATO_DOCUMENTO_COLORS[stato] ?? '#94a3b8';
-  }
-
-  // Computed signals per permissions
+  // ── Permissions ─────────────────────────────────────────────────────────
   canUpload = computed(() => {
     const user = this.authService.currentUserValue;
-    // ADMIN, RESPONSABILE e OPERATORE possono caricare documenti
     return user?.ruolo === 'ADMIN' || user?.ruolo === 'RESPONSABILE' || user?.ruolo === 'OPERATORE';
   });
 
   canDelete = computed(() => {
     const user = this.authService.currentUserValue;
-    // Solo ADMIN e RESPONSABILE possono eliminare documenti
     return user?.ruolo === 'ADMIN' || user?.ruolo === 'RESPONSABILE';
   });
 
   ngOnInit() {
-    this.loadDocumenti();
     this.loadStabilimenti();
+    this.loadDocumenti();
   }
+
+  // ── Caricamento dati ────────────────────────────────────────────────────
 
   loadDocumenti() {
     this.loading.set(true);
-    this.apiService.searchDocumenti({})
+
+    const params: Record<string, any> = {};
+    if (this.filterStabilimentoId()) params['stabilimentoId'] = this.filterStabilimentoId();
+    if (this.filterAnno())           params['anno']           = this.filterAnno();
+    if (this.filterTipo())           params['tipoDocumento']  = this.filterTipo();
+    if (this.filterKeyword().trim()) params['keyword']        = this.filterKeyword().trim();
+
+    this.apiService.searchDocumenti(params)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (result) => {
-          this.documenti.set(result.content);
+          this.documenti.set(result.content ?? []);
           this.loading.set(false);
         },
         error: (error) => {
           console.error('Errore caricamento documenti:', error);
+          this.documenti.set([]);
           this.loading.set(false);
         }
       });
@@ -111,12 +121,55 @@ export class DocumentiListComponent implements OnInit {
     this.apiService.getStabilimenti()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (data) => {
-          this.stabilimenti.set(data);
-        },
+        next: (data) => this.stabilimenti.set(data),
         error: (error) => console.error('Errore caricamento stabilimenti:', error)
       });
   }
+
+  // ── Filtri ───────────────────────────────────────────────────────────────
+
+  onFilterStabilimento(value: string) {
+    this.filterStabilimentoId.set(value ? +value : null);
+    this.loadDocumenti();
+  }
+
+  onFilterAnno(value: string) {
+    this.filterAnno.set(value ? +value : null);
+    this.loadDocumenti();
+  }
+
+  onFilterTipo(value: string) {
+    this.filterTipo.set(value ? value as TipoDocumento : null);
+    this.loadDocumenti();
+  }
+
+  onFilterKeyword(value: string) {
+    this.filterKeyword.set(value);
+    // Debounce: ricarica solo dopo 400ms di inattività
+    if (this._keywordTimer) clearTimeout(this._keywordTimer);
+    this._keywordTimer = setTimeout(() => this.loadDocumenti(), 400);
+  }
+
+  private _keywordTimer: any;
+
+  resetFiltri() {
+    this.filterStabilimentoId.set(null);
+    this.filterAnno.set(null);
+    this.filterTipo.set(null);
+    this.filterKeyword.set('');
+    this.loadDocumenti();
+  }
+
+  get filtriAttivi(): boolean {
+    return !!(
+      this.filterStabilimentoId() ||
+      this.filterAnno() ||
+      this.filterTipo() ||
+      this.filterKeyword().trim()
+    );
+  }
+
+  // ── Upload ───────────────────────────────────────────────────────────────
 
   openUploadForm() {
     this.showUploadForm.set(true);
@@ -145,25 +198,17 @@ export class DocumentiListComponent implements OnInit {
 
   uploadDocumento() {
     const file = this.selectedFile();
-    if (!file) {
-      alert('Seleziona un file');
-      return;
-    }
+    if (!file) { alert('Seleziona un file'); return; }
 
     const data = this.uploadData();
-    if (!data.tipo) {
-      alert('Seleziona il tipo di documento');
-      return;
-    }
+    if (!data.tipo) { alert('Seleziona il tipo di documento'); return; }
 
     const formData = new FormData();
     formData.append('file', file);
     formData.append('stabilimentoId', data.stabilimentoId.toString());
     formData.append('anno', data.anno.toString());
     formData.append('tipoDocumento', data.tipo);
-    if (data.descrizione) {
-      formData.append('descrizione', data.descrizione);
-    }
+    if (data.descrizione) formData.append('descrizione', data.descrizione);
 
     this.uploading.set(true);
     this.uploadProgress.set(50);
@@ -208,16 +253,12 @@ export class DocumentiListComponent implements OnInit {
   }
 
   deleteDocumento(documento: Documento) {
-    if (!confirm(`Sei sicuro di voler eliminare il documento "${documento.nome}"?`)) {
-      return;
-    }
+    if (!confirm(`Sei sicuro di voler eliminare il documento "${documento.nome}"?`)) return;
 
     this.apiService.deleteDocumento(documento.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
-          this.loadDocumenti();
-        },
+        next: () => this.loadDocumenti(),
         error: (error) => {
           console.error('Errore eliminazione:', error);
           alert('Errore durante eliminazione documento');
@@ -231,20 +272,9 @@ export class DocumentiListComponent implements OnInit {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  // Helper methods per update uploadData (fix parsing issue)
-  updateStabilimentoId(id: number) {
-    this.uploadData.update(d => ({...d, stabilimentoId: id}));
-  }
-
-  updateAnno(anno: number) {
-    this.uploadData.update(d => ({...d, anno: anno}));
-  }
-
-  updateTipo(tipo: TipoDocumento) {
-    this.uploadData.update(d => ({...d, tipo: tipo}));
-  }
-
-  updateDescrizione(descrizione: string) {
-    this.uploadData.update(d => ({...d, descrizione: descrizione}));
-  }
+  // Helper per update uploadData
+  updateStabilimentoId(id: number) { this.uploadData.update(d => ({...d, stabilimentoId: id})); }
+  updateAnno(anno: number)          { this.uploadData.update(d => ({...d, anno: anno})); }
+  updateTipo(tipo: TipoDocumento)   { this.uploadData.update(d => ({...d, tipo: tipo})); }
+  updateDescrizione(desc: string)   { this.uploadData.update(d => ({...d, descrizione: desc})); }
 }
