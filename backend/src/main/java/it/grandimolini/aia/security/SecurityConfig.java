@@ -2,6 +2,7 @@ package it.grandimolini.aia.security;
 
 import it.grandimolini.aia.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -116,5 +117,33 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
+    }
+
+    /**
+     * Impedisce a Spring Boot di registrare JwtAuthenticationFilter come servlet filter
+     * autonomo. Il filtro viene usato solo all'interno della Spring Security filter chain
+     * tramite addFilterBefore, quindi la doppia registrazione causerebbe il errore
+     * "does not have a registered order" di Spring Security 7.x.
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
+            JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration =
+                new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
+    }
+
+    /**
+     * Stessa ragione di jwtFilterRegistration: evita la doppia registrazione di
+     * LocalhostInternalAuthFilter come servlet filter.
+     */
+    @Bean
+    public FilterRegistrationBean<LocalhostInternalAuthFilter> localhostFilterRegistration(
+            LocalhostInternalAuthFilter filter) {
+        FilterRegistrationBean<LocalhostInternalAuthFilter> registration =
+                new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 }
