@@ -51,11 +51,12 @@ public class SecurityConfig {
                                  "/actuator/health", "/actuator/health/**").permitAll()
                 .anyRequest().authenticated()
             )
-            // Entrambi i filtri custom vanno prima di UsernamePasswordAuthenticationFilter.
-            // L'ordine di inserimento garantisce: localhost → jwt → UPAF.
-            // (Spring Security 7 non accetta filtri custom come riferimento in addFilterBefore)
-            .addFilterBefore(localhostInternalAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // Spring Security 7: addFilterBefore richiede che il filtro custom abbia un order
+            // registrato nell'FilterOrderRegistration interno — i nostri filtri non ce l'hanno.
+            // addFilterAt posiziona entrambi i filtri nella stessa slot di UPAF;
+            // l'ordine di inserimento garantisce: localhost → jwt → UPAF.
+            .addFilterAt(localhostInternalAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAt(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
