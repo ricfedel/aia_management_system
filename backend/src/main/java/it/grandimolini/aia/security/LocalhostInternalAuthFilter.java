@@ -6,11 +6,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -19,6 +17,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
+ * Filtro interno BPM: NON è un @Component — viene istanziato come @Bean in SecurityConfig
+ * per evitare il check sull'order registry di Spring Security 7.
+ *
  * Filtro di sicurezza che concede accesso automatico alle richieste interne
  * senza richiedere un token JWT.
  *
@@ -51,7 +52,6 @@ import java.util.Set;
  *       non sovrascrive l'autenticazione esistente.</li>
  * </ul>
  */
-@Component
 public class LocalhostInternalAuthFilter extends OncePerRequestFilter {
 
     private static final Logger log = LoggerFactory.getLogger(LocalhostInternalAuthFilter.class);
@@ -69,8 +69,11 @@ public class LocalhostInternalAuthFilter extends OncePerRequestFilter {
     private static final String ROLE_INTERNAL   = "ROLE_INTERNAL";
     private static final String INTERNAL_PRINCIPAL = "bpm-internal";
 
-    @Value("${app.internal.secret}")
-    private String internalSecret;
+    private final String internalSecret;
+
+    public LocalhostInternalAuthFilter(String internalSecret) {
+        this.internalSecret = internalSecret;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

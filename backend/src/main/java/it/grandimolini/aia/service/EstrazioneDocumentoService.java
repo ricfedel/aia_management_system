@@ -52,6 +52,9 @@ public class EstrazioneDocumentoService {
     @Autowired private StabilimentoRepository stabilimentoRepository;
     @Autowired private DefinizioneFlussoRepository definizioneFlussoRepository;
 
+    /** Nome stabile usato da EstrazioneController per trovare il flusso default */
+    public static final String FLUSSO_ESTRAZIONE_NOME = "Lavorazione Documento AIA";
+
     @Value("${aia.estrazione.ai.enabled:false}")
     private boolean aiEnabled;
 
@@ -153,7 +156,7 @@ public class EstrazioneDocumentoService {
             // Cerca la DefinizioneFlusso standard per l'estrazione; se trovata, usa
             // il flusso BPMN personalizzabile invece del tipo hardcoded.
             definizioneFlussoRepository.findByAttivaTrue().stream()
-                    .filter(df -> DataInitializer.FLUSSO_ESTRAZIONE_NOME.equals(df.getNome()))
+                    .filter(df -> FLUSSO_ESTRAZIONE_NOME.equals(df.getNome()))
                     .findFirst()
                     .ifPresentOrElse(
                         df -> avviaReq.setDefinizioneFlussoId(df.getId()),

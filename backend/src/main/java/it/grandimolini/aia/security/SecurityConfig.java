@@ -2,10 +2,9 @@ package it.grandimolini.aia.security;
 
 import it.grandimolini.aia.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -33,14 +32,30 @@ import java.util.Collections;
 public class SecurityConfig {
 
     @Autowired
-    @Lazy
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Autowired
-    private LocalhostInternalAuthFilter localhostInternalAuthFilter;
+    private JwtTokenProvider jwtTokenProvider;
 
     @Autowired
     private UserRepository userRepository;
+
+    @Value("${app.internal.secret}")
+    private String internalSecret;
+
+    /**
+     * Filtro JWT istanziato qui (non @Component) per evitare la doppia registrazione
+     * nel servlet container e il check sull'order registry di Spring Security 7.
+     */
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService());
+    }
+
+    /**
+     * Filtro interno BPM istanziato qui (non @Component) per la stessa ragione.
+     */
+    @Bean
+    public LocalhostInternalAuthFilter localhostInternalAuthFilter() {
+        return new LocalhostInternalAuthFilter(internalSecret);
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -51,12 +66,11 @@ public class SecurityConfig {
                                  "/actuator/health", "/actuator/health/**").permitAll()
                 .anyRequest().authenticated()
             )
-            // Spring Security 7: addFilterBefore richiede che il filtro custom abbia un order
-            // registrato nell'FilterOrderRegistration interno — i nostri filtri non ce l'hanno.
-            // addFilterAt posiziona entrambi i filtri nella stessa slot di UPAF;
-            // l'ordine di inserimento garantisce: localhost → jwt → UPAF.
-            .addFilterAt(localhostInternalAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAt(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            // I filtri vengono passati come istanze non-managed: Spring Security 7
+            // non cerca il loro order nel FilterOrderRegistration interno.
+            // Ordine garantito: localhost → jwt → UsernamePasswordAuthenticationFilter.
+            .addFilterBefore(localhostInternalAuthFilter(), UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
             .sessionManagement(session ->
                 session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
@@ -69,9 +83,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // allowedOriginPatterns("*") permette qualsiasi origine (IP, dominio, localhost)
-        // mantenendo compatibilità con allowCredentials(true).
-        // Il backend non è esposto direttamente (solo via nginx), quindi è sicuro.
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
@@ -118,33 +129,5 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
         return authConfig.getAuthenticationManager();
-    }
-
-    /**
-     * Impedisce a Spring Boot di registrare JwtAuthenticationFilter come servlet filter
-     * autonomo. Il filtro viene usato solo all'interno della Spring Security filter chain
-     * tramite addFilterBefore, quindi la doppia registrazione causerebbe il errore
-     * "does not have a registered order" di Spring Security 7.x.
-     */
-    @Bean
-    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(
-            JwtAuthenticationFilter filter) {
-        FilterRegistrationBean<JwtAuthenticationFilter> registration =
-                new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);
-        return registration;
-    }
-
-    /**
-     * Stessa ragione di jwtFilterRegistration: evita la doppia registrazione di
-     * LocalhostInternalAuthFilter come servlet filter.
-     */
-    @Bean
-    public FilterRegistrationBean<LocalhostInternalAuthFilter> localhostFilterRegistration(
-            LocalhostInternalAuthFilter filter) {
-        FilterRegistrationBean<LocalhostInternalAuthFilter> registration =
-                new FilterRegistrationBean<>(filter);
-        registration.setEnabled(false);
-        return registration;
     }
 }
