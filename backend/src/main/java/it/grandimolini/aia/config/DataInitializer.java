@@ -65,7 +65,10 @@ public class DataInitializer implements CommandLineRunner {
                 // SqlLoaderService usa Session.doWork(): stessa connessione JDBC
                 // che Hibernate usa per il DDL → le tabelle sono garantite visibili.
                 sqlLoaderService.loadDataSql();
-                log.info("DataInitializer: data.sql eseguito ({} stabilimenti caricati).",
+                sqlLoaderService.loadRifiutiSql();
+                sqlLoaderService.loadConformitaSql();
+                sqlLoaderService.loadProduzioneSql();
+                log.info("DataInitializer:  eseguito ({} stabilimenti caricati).",
                         stabilimentoRepository.count());
             }
         } else {

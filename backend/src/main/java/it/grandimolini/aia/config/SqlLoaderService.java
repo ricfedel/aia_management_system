@@ -51,7 +51,57 @@ public class SqlLoaderService {
         });
         log.info("SqlLoaderService: inizializzazione dati completata.");
     }
-
+    @Transactional
+    public void loadRifiutiSql() {
+        log.info("SqlLoaderService: esecuzione seed_rifiuti.sql via sessione Hibernate...");
+        Session session = entityManager.unwrap(Session.class);
+        session.doWork(connection -> {
+            try {
+                ScriptUtils.executeSqlScript(connection, new ClassPathResource("seed_rifiuti.sql"));
+                log.info("SqlLoaderService: seed_rifiuti.sql completato, resetto le sequenze...");
+                resetSequences(connection);
+                log.info("SqlLoaderService seed_rifiuti: sequenze resettate.");
+            } catch (Exception e) {
+                log.error("SqlLoaderService seed_rifiuti: errore durante l'esecuzione di seed_rifiuti.sql", e);
+                throw e;
+            }
+        });
+        log.info("SqlLoaderService seed_rifiuti: inizializzazione dati completata.");
+    }
+    @Transactional
+    public void loadProduzioneSql() {
+        log.info("SqlLoaderService: esecuzione seed_produzione.sql via sessione Hibernate...");
+        Session session = entityManager.unwrap(Session.class);
+        session.doWork(connection -> {
+            try {
+                ScriptUtils.executeSqlScript(connection, new ClassPathResource("seed_produzione.sql"));
+                log.info("SqlLoaderService: seed_produzione.sql completato, resetto le sequenze...");
+                resetSequences(connection);
+                log.info("SqlLoaderService seed_produzione: sequenze resettate.");
+            } catch (Exception e) {
+                log.error("SqlLoaderService seed_produzione: errore durante l'esecuzione di seed_produzione.sql", e);
+                throw e;
+            }
+        });
+        log.info("SqlLoaderService seed_produzione: inizializzazione dati completata.");
+    }
+    @Transactional
+    public void loadConformitaSql() {
+        log.info("SqlLoaderService: esecuzione seed_conformita.sql via sessione Hibernate...");
+        Session session = entityManager.unwrap(Session.class);
+        session.doWork(connection -> {
+            try {
+                ScriptUtils.executeSqlScript(connection, new ClassPathResource("seed_conformita.sql"));
+                log.info("SqlLoaderService: seed_conformita.sql completato, resetto le sequenze...");
+                resetSequences(connection);
+                log.info("SqlLoaderService seed_conformita: sequenze resettate.");
+            } catch (Exception e) {
+                log.error("SqlLoaderService seed_conformita: errore durante l'esecuzione di seed_conformita.sql", e);
+                throw e;
+            }
+        });
+        log.info("SqlLoaderService seed_conformita: inizializzazione dati completata.");
+    }
     /**
      * Resetta le sequenze PostgreSQL dopo INSERT con ID espliciti.
      * Usa pg_get_serial_sequence (funziona con SERIAL e IDENTITY BY DEFAULT).
