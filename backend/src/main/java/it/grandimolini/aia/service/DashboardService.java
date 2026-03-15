@@ -8,7 +8,6 @@ import it.grandimolini.aia.model.DatiAmbientali;
 import it.grandimolini.aia.model.Prescrizione;
 import it.grandimolini.aia.model.Scadenza;
 import it.grandimolini.aia.model.Stabilimento;
-import it.grandimolini.aia.model.User;
 import it.grandimolini.aia.repository.DatiAmbientaliRepository;
 import it.grandimolini.aia.repository.MonitoraggioRepository;
 import it.grandimolini.aia.repository.PrescrizioneRepository;
@@ -307,8 +306,8 @@ public class DashboardService {
         if (stabilimentoAccessChecker.isAdmin()) {
             return stabilimentoRepository.findAll();
         } else {
-            User currentUser = stabilimentoAccessChecker.getCurrentUser();
-            return new ArrayList<>(currentUser.getStabilimenti());
+            List<Long> ids = stabilimentoAccessChecker.getCurrentUserStabilimentoIds();
+            return stabilimentoRepository.findAllById(ids);
         }
     }
 

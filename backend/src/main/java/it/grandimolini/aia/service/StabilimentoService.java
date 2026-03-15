@@ -1,11 +1,15 @@
 package it.grandimolini.aia.service;
 
+import it.grandimolini.aia.dto.CreateStabilimentoRequest;
 import it.grandimolini.aia.dto.StabilimentoDTO;
+import it.grandimolini.aia.dto.UpdateStabilimentoRequest;
+import it.grandimolini.aia.exception.ResourceNotFoundException;
 import it.grandimolini.aia.model.Stabilimento;
 import it.grandimolini.aia.repository.StabilimentoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -71,6 +75,61 @@ public class StabilimentoService {
     public StabilimentoDTO saveAsDTO(Stabilimento stabilimento) {
         Stabilimento saved = save(stabilimento);
         return toDTO(saved);
+    }
+
+    @Transactional(readOnly = true)
+    public List<StabilimentoDTO> findByIdsAsDTOs(Collection<Long> ids) {
+        return stabilimentoRepository.findAllById(ids).stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StabilimentoDTO> findByIdsAttiviAsDTOs(Collection<Long> ids) {
+        return stabilimentoRepository.findAllById(ids).stream()
+                .filter(Stabilimento::getAttivo)
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsById(Long id) {
+        return stabilimentoRepository.existsById(id);
+    }
+
+    @Transactional
+    public StabilimentoDTO createFromRequest(CreateStabilimentoRequest request) {
+        Stabilimento stabilimento = new Stabilimento();
+        stabilimento.setNome(request.getNome());
+        stabilimento.setCitta(request.getCitta());
+        stabilimento.setIndirizzo(request.getIndirizzo());
+        stabilimento.setNumeroAIA(request.getNumeroAIA());
+        stabilimento.setDataRilascioAIA(request.getDataRilascioAIA());
+        stabilimento.setDataScadenzaAIA(request.getDataScadenzaAIA());
+        stabilimento.setEnteCompetente(request.getEnteCompetente());
+        stabilimento.setResponsabileAmbientale(request.getResponsabileAmbientale());
+        stabilimento.setEmail(request.getEmail());
+        stabilimento.setTelefono(request.getTelefono());
+        stabilimento.setAttivo(request.getAttivo() != null ? request.getAttivo() : true);
+        return toDTO(stabilimentoRepository.save(stabilimento));
+    }
+
+    @Transactional
+    public StabilimentoDTO updateFromRequest(Long id, UpdateStabilimentoRequest request) {
+        Stabilimento stabilimento = stabilimentoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Stabilimento", "id", id));
+        if (request.getNome() != null)                 stabilimento.setNome(request.getNome());
+        if (request.getCitta() != null)                stabilimento.setCitta(request.getCitta());
+        if (request.getIndirizzo() != null)            stabilimento.setIndirizzo(request.getIndirizzo());
+        if (request.getNumeroAIA() != null)            stabilimento.setNumeroAIA(request.getNumeroAIA());
+        if (request.getDataRilascioAIA() != null)      stabilimento.setDataRilascioAIA(request.getDataRilascioAIA());
+        if (request.getDataScadenzaAIA() != null)      stabilimento.setDataScadenzaAIA(request.getDataScadenzaAIA());
+        if (request.getEnteCompetente() != null)       stabilimento.setEnteCompetente(request.getEnteCompetente());
+        if (request.getResponsabileAmbientale() != null) stabilimento.setResponsabileAmbientale(request.getResponsabileAmbientale());
+        if (request.getEmail() != null)                stabilimento.setEmail(request.getEmail());
+        if (request.getTelefono() != null)             stabilimento.setTelefono(request.getTelefono());
+        if (request.getAttivo() != null)               stabilimento.setAttivo(request.getAttivo());
+        return toDTO(stabilimentoRepository.save(stabilimento));
     }
 
     // ─── Private DTO Conversion ────────────────────────────────────────

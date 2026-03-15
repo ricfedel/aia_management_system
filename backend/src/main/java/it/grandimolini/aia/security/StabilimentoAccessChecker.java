@@ -7,11 +7,28 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 @Component("stabilimentoAccessChecker")
 public class StabilimentoAccessChecker {
 
+    /** Authority assegnata dal {@link LocalhostInternalAuthFilter} alle chiamate BPM interne. */
+    private static final String ROLE_INTERNAL = "ROLE_INTERNAL";
+
     @Autowired
     private UserRepository userRepository;
+
+    // ─── Helper: verifica se l'autenticazione è un principal interno BPM ──────
+
+    /**
+     * Ritorna {@code true} se l'autenticazione appartiene al principal interno BPM
+     * (es. "bpm-internal"), che non ha una riga nel DB ma ha pieno accesso.
+     */
+    private boolean isInternalPrincipal(Authentication auth) {
+        if (auth == null) return false;
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> ROLE_INTERNAL.equals(a.getAuthority()));
+    }
 
     /**
      * Verifica se l'utente corrente ha accesso allo stabilimento specificato.
@@ -25,8 +42,11 @@ public class StabilimentoAccessChecker {
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
+        // Il principal interno BPM ha accesso a tutto
+        if (isInternalPrincipal(authentication)) return true;
 
         String username = authentication.getName();
+        // findByUsername per ruolo, poi JOIN FETCH per stabilimenti se serve
         User user = userRepository.findByUsername(username).orElse(null);
 
         if (user == null) {
@@ -38,8 +58,14 @@ public class StabilimentoAccessChecker {
             return true;
         }
 
+        // Usa JOIN FETCH per evitare LazyInitializationException sulla collection stabilimenti
+        User userWithStabilimenti = userRepository.findByIdWithStabilimenti(user.getId()).orElse(null);
+        if (userWithStabilimenti == null) {
+            return false;
+        }
+
         // Verifica se lo stabilimento è tra quelli assegnati all'utente
-        return user.getStabilimenti().stream()
+        return userWithStabilimenti.getStabilimenti().stream()
                 .anyMatch(s -> s.getId().equals(stabilimentoId));
     }
 
@@ -53,6 +79,7 @@ public class StabilimentoAccessChecker {
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
+        if (isInternalPrincipal(authentication)) return true;
 
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElse(null);
@@ -70,6 +97,7 @@ public class StabilimentoAccessChecker {
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
+        if (isInternalPrincipal(authentication)) return true;
 
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElse(null);
@@ -89,6 +117,7 @@ public class StabilimentoAccessChecker {
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
+        if (isInternalPrincipal(authentication)) return true;
 
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElse(null);
@@ -110,6 +139,7 @@ public class StabilimentoAccessChecker {
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
+        if (isInternalPrincipal(authentication)) return true;
 
         String username = authentication.getName();
         User user = userRepository.findByUsername(username).orElse(null);
@@ -121,17 +151,26 @@ public class StabilimentoAccessChecker {
     }
 
     /**
-     * Ottiene l'utente corrente autenticato.
+     * Restituisce gli ID degli stabilimenti assegnati all'utente corrente.
+     * Usa JOIN FETCH per evitare LazyInitializationException.
      *
-     * @return l'utente corrente o null se non autenticato
+     * @return lista di ID stabilimenti, vuota se non autenticato o nessuno assegnato
      */
-    public User getCurrentUser() {
+    public List<Long> getCurrentUserStabilimentoIds() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
+            return List.of();
         }
+        // Il principal interno BPM non ha una riga nel DB: restituisce lista vuota
+        // (i suoi chiamanti usano isAdmin() per decidere il percorso admin/non-admin)
+        if (isInternalPrincipal(authentication)) return List.of();
 
         String username = authentication.getName();
-        return userRepository.findByUsername(username).orElse(null);
+        return userRepository.findByUsername(username)
+                .flatMap(u -> userRepository.findByIdWithStabilimenti(u.getId()))
+                .map(u -> u.getStabilimenti().stream()
+                        .map(s -> s.getId())
+                        .collect(java.util.stream.Collectors.toList()))
+                .orElse(List.of());
     }
 }
