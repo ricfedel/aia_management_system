@@ -30,19 +30,18 @@ public class StabilimentoController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<StabilimentoDTO>> getAllStabilimenti() {
-        List<Stabilimento> stabilimenti;
+        List<StabilimentoDTO> dtos;
 
         if (stabilimentoAccessChecker.isAdmin()) {
-            stabilimenti = stabilimentoService.findAll();
+            dtos = stabilimentoService.findAllAsDTOs();
         } else {
             // Gli utenti non admin vedono solo i loro stabilimenti
-            stabilimenti = stabilimentoAccessChecker.getCurrentUser().getStabilimenti()
+            List<Stabilimento> stabilimenti = stabilimentoAccessChecker.getCurrentUser().getStabilimenti()
                     .stream().toList();
+            dtos = stabilimenti.stream()
+                    .map(s -> stabilimentoService.findByIdAsDTO(s.getId()).orElseThrow())
+                    .collect(Collectors.toList());
         }
-
-        List<StabilimentoDTO> dtos = stabilimenti.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -50,20 +49,19 @@ public class StabilimentoController {
     @GetMapping("/attivi")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<StabilimentoDTO>> getStabilimentiAttivi() {
-        List<Stabilimento> stabilimenti;
+        List<StabilimentoDTO> dtos;
 
         if (stabilimentoAccessChecker.isAdmin()) {
-            stabilimenti = stabilimentoService.findAllAttivi();
+            dtos = stabilimentoService.findAllAttiviAsDTOs();
         } else {
-            stabilimenti = stabilimentoAccessChecker.getCurrentUser().getStabilimenti()
+            List<Stabilimento> stabilimenti = stabilimentoAccessChecker.getCurrentUser().getStabilimenti()
                     .stream()
                     .filter(Stabilimento::getAttivo)
                     .toList();
+            dtos = stabilimenti.stream()
+                    .map(s -> stabilimentoService.findByIdAsDTO(s.getId()).orElseThrow())
+                    .collect(Collectors.toList());
         }
-
-        List<StabilimentoDTO> dtos = stabilimenti.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -71,19 +69,19 @@ public class StabilimentoController {
     @GetMapping("/{id}")
     @PreAuthorize("@stabilimentoAccessChecker.hasAccessToStabilimento(#id)")
     public ResponseEntity<StabilimentoDTO> getStabilimentoById(@PathVariable Long id) {
-        Stabilimento stabilimento = stabilimentoService.findById(id)
+        StabilimentoDTO dto = stabilimentoService.findByIdAsDTO(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Stabilimento", "id", id));
 
-        return ResponseEntity.ok(convertToDTO(stabilimento));
+        return ResponseEntity.ok(dto);
     }
 
     @PostMapping
     @PreAuthorize("@stabilimentoAccessChecker.isAdmin()")
     public ResponseEntity<StabilimentoDTO> createStabilimento(@Valid @RequestBody CreateStabilimentoRequest request) {
         Stabilimento stabilimento = convertToEntity(request);
-        Stabilimento saved = stabilimentoService.save(stabilimento);
+        StabilimentoDTO dto = stabilimentoService.saveAsDTO(stabilimento);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")
@@ -96,9 +94,9 @@ public class StabilimentoController {
                 .orElseThrow(() -> new ResourceNotFoundException("Stabilimento", "id", id));
 
         updateEntityFromRequest(existing, request);
-        Stabilimento updated = stabilimentoService.save(existing);
+        StabilimentoDTO dto = stabilimentoService.saveAsDTO(existing);
 
-        return ResponseEntity.ok(convertToDTO(updated));
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}")
@@ -112,24 +110,7 @@ public class StabilimentoController {
         return ResponseEntity.noContent().build();
     }
 
-    // Metodi di conversione DTO <-> Entity
-
-    private StabilimentoDTO convertToDTO(Stabilimento stabilimento) {
-        return StabilimentoDTO.builder()
-                .id(stabilimento.getId())
-                .nome(stabilimento.getNome())
-                .citta(stabilimento.getCitta())
-                .indirizzo(stabilimento.getIndirizzo())
-                .numeroAIA(stabilimento.getNumeroAIA())
-                .dataRilascioAIA(stabilimento.getDataRilascioAIA())
-                .dataScadenzaAIA(stabilimento.getDataScadenzaAIA())
-                .enteCompetente(stabilimento.getEnteCompetente())
-                .responsabileAmbientale(stabilimento.getResponsabileAmbientale())
-                .email(stabilimento.getEmail())
-                .telefono(stabilimento.getTelefono())
-                .attivo(stabilimento.getAttivo())
-                .build();
-    }
+    // Metodi di conversione Entity ← Request (controller responsibility)
 
     private Stabilimento convertToEntity(CreateStabilimentoRequest request) {
         Stabilimento stabilimento = new Stabilimento();

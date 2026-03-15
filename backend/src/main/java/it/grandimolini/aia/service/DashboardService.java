@@ -17,6 +17,7 @@ import it.grandimolini.aia.repository.StabilimentoRepository;
 import it.grandimolini.aia.security.StabilimentoAccessChecker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -47,6 +48,7 @@ public class DashboardService {
     /**
      * Ottiene statistiche generali dashboard
      */
+    @Transactional(readOnly = true)
     public DashboardStatsDTO getDashboardStats() {
         List<Stabilimento> stabilimenti = getAccessibleStabilimenti();
         List<Long> stabilimentiIds = stabilimenti.stream()
@@ -131,6 +133,7 @@ public class DashboardService {
     /**
      * Ottiene statistiche per uno specifico stabilimento
      */
+    @Transactional(readOnly = true)
     public StabilimentoStatsDTO getStabilimentoStats(Long stabilimentoId) {
         Stabilimento stabilimento = stabilimentoRepository.findById(stabilimentoId)
                 .orElseThrow(() -> new RuntimeException("Stabilimento not found"));
@@ -202,6 +205,7 @@ public class DashboardService {
     /**
      * Ottiene lista scadenze imminenti
      */
+    @Transactional(readOnly = true)
     public List<ScadenzaImminenteDTO> getScadenzeImminenti(int giorni) {
         List<Stabilimento> stabilimenti = getAccessibleStabilimenti();
         List<Long> stabilimentiIds = stabilimenti.stream()
@@ -230,6 +234,7 @@ public class DashboardService {
     /**
      * Ottiene trend conformità per gli ultimi 12 mesi
      */
+    @Transactional(readOnly = true)
     public List<ConformitaTrendDTO> getConformitaTrend(int mesi) {
         List<Stabilimento> stabilimenti = getAccessibleStabilimenti();
         List<Long> stabilimentiIds = stabilimenti.stream()

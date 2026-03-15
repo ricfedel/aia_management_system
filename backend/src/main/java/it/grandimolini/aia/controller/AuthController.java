@@ -2,8 +2,6 @@ package it.grandimolini.aia.controller;
 
 import it.grandimolini.aia.dto.*;
 import it.grandimolini.aia.exception.ResourceNotFoundException;
-import it.grandimolini.aia.model.User;
-import it.grandimolini.aia.repository.UserRepository;
 import it.grandimolini.aia.security.JwtTokenProvider;
 import it.grandimolini.aia.service.UserService;
 import jakarta.validation.Valid;
@@ -27,9 +25,6 @@ public class AuthController {
     private UserService userService;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
     private JwtTokenProvider tokenProvider;
 
     /** Endpoint di liveness usato dall'healthcheck Docker/Kubernetes — nessuna auth richiesta. */
@@ -39,10 +34,9 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserDTO> register(@Valid @RequestBody CreateUserRequest request) {
-        User user = userService.create(request);
-        UserDTO userDTO = UserDTO.fromEntity(user);
-        return ResponseEntity.status(HttpStatus.CREATED).body(userDTO);
+    public ResponseEntity<UserVM> register(@Valid @RequestBody CreateUserRequest request) {
+        UserVM vm = userService.create(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(vm);
     }
 
     @PostMapping("/login")
@@ -59,15 +53,15 @@ public class AuthController {
         String accessToken = tokenProvider.generateAccessToken(authentication);
         String refreshToken = tokenProvider.generateRefreshToken(authentication);
 
-        User user = userRepository.findByUsername(request.getUsername())
+        UserVM vm = userService.findByUsername(request.getUsername())
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", request.getUsername()));
 
         AuthResponse response = new AuthResponse(
                 accessToken,
                 refreshToken,
-                user.getId(),
-                user.getUsername(),
-                user.getRuolo().name()
+                vm.getId(),
+                vm.getUsername(),
+                vm.getRuolo().name()
         );
 
         return ResponseEntity.ok(response);
@@ -80,19 +74,18 @@ public class AuthController {
         }
 
         String username = tokenProvider.getUsernameFromToken(refreshToken);
-        User user = userRepository.findByUsername(username)
+        UserVM vm = userService.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
-        // Create authentication object for token generation
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String newAccessToken = tokenProvider.generateAccessToken(authentication);
 
         AuthResponse response = new AuthResponse(
                 newAccessToken,
                 refreshToken,
-                user.getId(),
-                user.getUsername(),
-                user.getRuolo().name()
+                vm.getId(),
+                vm.getUsername(),
+                vm.getRuolo().name()
         );
 
         return ResponseEntity.ok(response);
@@ -103,10 +96,9 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        User user = userRepository.findByUsername(username)
+        CurrentUserDTO currentUser = userService.findCurrentUserDTO(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
-        CurrentUserDTO currentUser = CurrentUserDTO.fromEntity(user);
         return ResponseEntity.ok(currentUser);
     }
 
@@ -115,10 +107,10 @@ public class AuthController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
 
-        User user = userRepository.findByUsername(username)
+        UserVM vm = userService.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "username", username));
 
-        userService.changePassword(user.getId(), request.getOldPassword(), request.getNewPassword());
+        userService.changePassword(vm.getId(), request.getOldPassword(), request.getNewPassword());
 
         return ResponseEntity.ok("Password changed successfully");
     }

@@ -2,13 +2,9 @@ package it.grandimolini.aia.controller;
 
 import it.grandimolini.aia.dto.AnagraficaCaminoDTO;
 import it.grandimolini.aia.exception.ResourceNotFoundException;
-import it.grandimolini.aia.model.AnagraficaCamino;
 import it.grandimolini.aia.model.AnagraficaCamino.FaseProcesso;
-import it.grandimolini.aia.model.Stabilimento;
-import it.grandimolini.aia.repository.AnagraficaCaminoRepository;
 import it.grandimolini.aia.security.StabilimentoAccessChecker;
-import it.grandimolini.aia.service.StabilimentoService;
-import org.springframework.beans.factory.annotation.Autowired;
+import it.grandimolini.aia.service.AnagraficaCaminoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -26,9 +22,14 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/anagrafica-camini")
 public class AnagraficaCaminoController {
 
-    @Autowired private AnagraficaCaminoRepository repo;
-    @Autowired private StabilimentoService stabilimentoService;
-    @Autowired private StabilimentoAccessChecker accessChecker;
+    private final AnagraficaCaminoService anagraficaCaminoService;
+    private final StabilimentoAccessChecker accessChecker;
+
+    public AnagraficaCaminoController(AnagraficaCaminoService anagraficaCaminoService,
+                                      StabilimentoAccessChecker accessChecker) {
+        this.anagraficaCaminoService = anagraficaCaminoService;
+        this.accessChecker = accessChecker;
+    }
 
     // ─── GET tutti (admin vede tutto, altri filtrano per stabilimento) ────
 
@@ -39,28 +40,28 @@ public class AnagraficaCaminoController {
             @RequestParam(required = false) FaseProcesso faseProcesso,
             @RequestParam(required = false) Boolean attivo) {
 
-        List<AnagraficaCamino> list;
+        List<AnagraficaCaminoDTO> list;
 
         if (stabilimentoId != null) {
             if (faseProcesso != null) {
-                list = repo.findByStabilimentoIdAndFaseProcessoOrderBySiglaAsc(stabilimentoId, faseProcesso);
+                list = anagraficaCaminoService.findByStabilimentoIdAndFaseProcessoAsDTOs(stabilimentoId, faseProcesso);
             } else if (attivo != null) {
-                list = repo.findByStabilimentoIdAndAttivoOrderBySiglaAsc(stabilimentoId, attivo);
+                list = anagraficaCaminoService.findByStabilimentoIdAndAttivoAsDTOs(stabilimentoId, attivo);
             } else {
-                list = repo.findByStabilimentoIdOrderBySiglaAsc(stabilimentoId);
+                list = anagraficaCaminoService.findByStabilimentoIdAsDTOs(stabilimentoId);
             }
         } else {
-            list = repo.findAll();
+            list = anagraficaCaminoService.findAllAsDTOs();
         }
 
         // filtra per accesso stabilimento
         if (!accessChecker.isAdmin()) {
             list = list.stream()
-                    .filter(c -> accessChecker.hasAccessToStabilimento(c.getStabilimento().getId()))
+                    .filter(dto -> accessChecker.hasAccessToStabilimento(dto.getStabilimentoId()))
                     .collect(Collectors.toList());
         }
 
-        return ResponseEntity.ok(list.stream().map(this::toDTO).collect(Collectors.toList()));
+        return ResponseEntity.ok(list);
     }
 
     // ─── GET singolo ──────────────────────────────────────────────────────
@@ -68,8 +69,8 @@ public class AnagraficaCaminoController {
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<AnagraficaCaminoDTO> getById(@PathVariable Long id) {
-        AnagraficaCamino c = findAndCheck(id);
-        return ResponseEntity.ok(toDTO(c));
+        AnagraficaCaminoDTO dto = findAndCheckAccess(id);
+        return ResponseEntity.ok(dto);
     }
 
     // ─── GET per sigla dentro uno stabilimento ────────────────────────────
@@ -78,9 +79,9 @@ public class AnagraficaCaminoController {
     @PreAuthorize("@stabilimentoAccessChecker.hasAccessToStabilimento(#stabilimentoId)")
     public ResponseEntity<AnagraficaCaminoDTO> getBySigla(
             @PathVariable Long stabilimentoId, @PathVariable String sigla) {
-        AnagraficaCamino c = repo.findByStabilimentoIdAndSigla(stabilimentoId, sigla)
+        AnagraficaCaminoDTO dto = anagraficaCaminoService.findByStabilimentoIdAndSiglaAsDTO(stabilimentoId, sigla)
                 .orElseThrow(() -> new ResourceNotFoundException("AnagraficaCamino", "sigla", sigla));
-        return ResponseEntity.ok(toDTO(c));
+        return ResponseEntity.ok(dto);
     }
 
     // ─── CREATE ───────────────────────────────────────────────────────────
@@ -88,8 +89,8 @@ public class AnagraficaCaminoController {
     @PostMapping
     @PreAuthorize("@stabilimentoAccessChecker.isResponsabileOrAdmin()")
     public ResponseEntity<AnagraficaCaminoDTO> create(@RequestBody AnagraficaCaminoDTO dto) {
-        AnagraficaCamino c = fromDTO(dto, new AnagraficaCamino());
-        return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(repo.save(c)));
+        AnagraficaCaminoDTO created = anagraficaCaminoService.createFromDTO(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     // ─── UPDATE ───────────────────────────────────────────────────────────
@@ -98,9 +99,9 @@ public class AnagraficaCaminoController {
     @PreAuthorize("@stabilimentoAccessChecker.isResponsabileOrAdmin()")
     public ResponseEntity<AnagraficaCaminoDTO> update(
             @PathVariable Long id, @RequestBody AnagraficaCaminoDTO dto) {
-        AnagraficaCamino c = findAndCheck(id);
-        fromDTO(dto, c);
-        return ResponseEntity.ok(toDTO(repo.save(c)));
+        findAndCheckAccess(id);  // access check
+        AnagraficaCaminoDTO updated = anagraficaCaminoService.updateFromDTO(id, dto);
+        return ResponseEntity.ok(updated);
     }
 
     // ─── DELETE ───────────────────────────────────────────────────────────
@@ -108,67 +109,19 @@ public class AnagraficaCaminoController {
     @DeleteMapping("/{id}")
     @PreAuthorize("@stabilimentoAccessChecker.isResponsabileOrAdmin()")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        findAndCheck(id);
-        repo.deleteById(id);
+        findAndCheckAccess(id);  // access check
+        anagraficaCaminoService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
     // ─── helpers ──────────────────────────────────────────────────────────
 
-    private AnagraficaCamino findAndCheck(Long id) {
-        AnagraficaCamino c = repo.findById(id)
+    private AnagraficaCaminoDTO findAndCheckAccess(Long id) {
+        AnagraficaCaminoDTO dto = anagraficaCaminoService.findByIdAsDTO(id)
                 .orElseThrow(() -> new ResourceNotFoundException("AnagraficaCamino", "id", id));
-        if (!accessChecker.isAdmin() &&
-            !accessChecker.hasAccessToStabilimento(c.getStabilimento().getId())) {
+        if (!accessChecker.isAdmin() && !accessChecker.hasAccessToStabilimento(dto.getStabilimentoId())) {
             throw new ResourceNotFoundException("AnagraficaCamino", "id", id);
         }
-        return c;
-    }
-
-    private AnagraficaCaminoDTO toDTO(AnagraficaCamino c) {
-        return AnagraficaCaminoDTO.builder()
-                .id(c.getId())
-                .stabilimentoId(c.getStabilimento().getId())
-                .stabilimentoNome(c.getStabilimento().getNome())
-                .sigla(c.getSigla())
-                .faseProcesso(c.getFaseProcesso())
-                .origine(c.getOrigine())
-                .portataNomc3h(c.getPortataNomc3h())
-                .sezioneM2(c.getSezioneM2())
-                .velocitaMs(c.getVelocitaMs())
-                .temperaturaC(c.getTemperaturaC())
-                .temperaturaAmbiente(c.getTemperaturaAmbiente())
-                .altezzaM(c.getAltezzaM())
-                .durataHGiorno(c.getDurataHGiorno())
-                .durataGAnno(c.getDurataGAnno())
-                .impiantoAbbattimento(c.getImpiantoAbbattimento())
-                .note(c.getNote())
-                .attivo(c.getAttivo())
-                .createdAt(c.getCreatedAt())
-                .build();
-    }
-
-    private AnagraficaCamino fromDTO(AnagraficaCaminoDTO dto, AnagraficaCamino c) {
-        if (dto.getStabilimentoId() != null) {
-            Stabilimento st = stabilimentoService.findById(dto.getStabilimentoId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Stabilimento", "id", dto.getStabilimentoId()));
-            c.setStabilimento(st);
-        }
-        if (dto.getSigla() != null)                 c.setSigla(dto.getSigla().toUpperCase());
-        if (dto.getFaseProcesso() != null)           c.setFaseProcesso(dto.getFaseProcesso());
-        if (dto.getOrigine() != null)                c.setOrigine(dto.getOrigine());
-        if (dto.getPortataNomc3h() != null)          c.setPortataNomc3h(dto.getPortataNomc3h());
-        if (dto.getSezioneM2() != null)              c.setSezioneM2(dto.getSezioneM2());
-        if (dto.getVelocitaMs() != null)             c.setVelocitaMs(dto.getVelocitaMs());
-        // temperatura: null = ambiente
-        c.setTemperaturaC(dto.getTemperaturaC());
-        c.setTemperaturaAmbiente(dto.getTemperaturaAmbiente() != null ? dto.getTemperaturaAmbiente() : dto.getTemperaturaC() == null);
-        if (dto.getAltezzaM() != null)               c.setAltezzaM(dto.getAltezzaM());
-        if (dto.getDurataHGiorno() != null)          c.setDurataHGiorno(dto.getDurataHGiorno());
-        if (dto.getDurataGAnno() != null)            c.setDurataGAnno(dto.getDurataGAnno());
-        if (dto.getImpiantoAbbattimento() != null)   c.setImpiantoAbbattimento(dto.getImpiantoAbbattimento());
-        if (dto.getNote() != null)                   c.setNote(dto.getNote());
-        c.setAttivo(dto.getAttivo() != null ? dto.getAttivo() : true);
-        return c;
+        return dto;
     }
 }

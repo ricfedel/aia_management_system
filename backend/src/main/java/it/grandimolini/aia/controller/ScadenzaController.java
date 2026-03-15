@@ -27,7 +27,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/scadenze")
@@ -57,41 +56,29 @@ public class ScadenzaController {
     @GetMapping
     @PreAuthorize("@stabilimentoAccessChecker.isAdmin()")
     public ResponseEntity<List<ScadenzaDTO>> getAllScadenze() {
-        List<Scadenza> scadenze = scadenzaService.findAll();
-        List<ScadenzaDTO> dtos = scadenze.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
+        List<ScadenzaDTO> dtos = scadenzaService.findAllAsDTOs();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/stabilimento/{stabilimentoId}")
     @PreAuthorize("@stabilimentoAccessChecker.hasAccessToStabilimento(#stabilimentoId)")
     public ResponseEntity<List<ScadenzaDTO>> getScadenzeByStabilimento(@PathVariable Long stabilimentoId) {
-        List<Scadenza> scadenze = scadenzaService.findByStabilimento(stabilimentoId);
-        List<ScadenzaDTO> dtos = scadenze.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
+        List<ScadenzaDTO> dtos = scadenzaService.findByStabilimentoAsDTOs(stabilimentoId);
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/prossimi-30-giorni")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ScadenzaDTO>> getScadenzeProssimi30Giorni() {
-        List<Scadenza> scadenze = scadenzaService.findScadenzeProssimi30Giorni();
+        List<ScadenzaDTO> dtos = scadenzaService.findScadenzeProssimi30GiorniAsDTOs();
 
         // Filtra per stabilimenti accessibili all'utente
         if (!stabilimentoAccessChecker.isAdmin()) {
-            scadenze = scadenze.stream()
-                    .filter(scadenza -> scadenza.getStabilimento() != null &&
-                            stabilimentoAccessChecker.hasAccessToStabilimento(scadenza.getStabilimento().getId()))
-                    .collect(Collectors.toList());
+            dtos = dtos.stream()
+                    .filter(dto -> dto.getStabilimentoId() != null &&
+                            stabilimentoAccessChecker.hasAccessToStabilimento(dto.getStabilimentoId()))
+                    .toList();
         }
-
-        List<ScadenzaDTO> dtos = scadenze.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -101,19 +88,15 @@ public class ScadenzaController {
     public ResponseEntity<List<ScadenzaDTO>> getScadenzeImminenti(
             @RequestParam(defaultValue = "20") int giorni) {
 
-        List<Scadenza> scadenze = scadenzaService.findScadenzeImminenti(giorni);
+        List<ScadenzaDTO> dtos = scadenzaService.findScadenzeImminentiAsDTOs(giorni);
 
         // Filtra per stabilimenti accessibili all'utente
         if (!stabilimentoAccessChecker.isAdmin()) {
-            scadenze = scadenze.stream()
-                    .filter(scadenza -> scadenza.getStabilimento() != null &&
-                            stabilimentoAccessChecker.hasAccessToStabilimento(scadenza.getStabilimento().getId()))
-                    .collect(Collectors.toList());
+            dtos = dtos.stream()
+                    .filter(dto -> dto.getStabilimentoId() != null &&
+                            stabilimentoAccessChecker.hasAccessToStabilimento(dto.getStabilimentoId()))
+                    .toList();
         }
-
-        List<ScadenzaDTO> dtos = scadenze.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
 
         return ResponseEntity.ok(dtos);
     }
@@ -130,7 +113,7 @@ public class ScadenzaController {
             throw new ResourceNotFoundException("Scadenza", "id", id);
         }
 
-        return ResponseEntity.ok(convertToDTO(scadenza));
+        return ResponseEntity.ok(scadenzaService.findByIdAsDTO(id).orElseThrow());
     }
 
     @PostMapping
@@ -143,9 +126,9 @@ public class ScadenzaController {
         }
 
         Scadenza scadenza = convertToEntity(request);
-        Scadenza saved = scadenzaService.save(scadenza);
+        ScadenzaDTO dto = scadenzaService.saveAsDTO(scadenza);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")
@@ -164,9 +147,9 @@ public class ScadenzaController {
         }
 
         updateEntityFromRequest(existing, request);
-        Scadenza updated = scadenzaService.save(existing);
+        ScadenzaDTO dto = scadenzaService.saveAsDTO(existing);
 
-        return ResponseEntity.ok(convertToDTO(updated));
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}")
@@ -227,40 +210,7 @@ public class ScadenzaController {
         }
     }
 
-    // Metodi di conversione DTO <-> Entity
-
-    private ScadenzaDTO convertToDTO(Scadenza scadenza) {
-        ScadenzaDTO.ScadenzaDTOBuilder builder = ScadenzaDTO.builder()
-                .id(scadenza.getId())
-                .titolo(scadenza.getTitolo())
-                .descrizione(scadenza.getDescrizione())
-                .tipoScadenza(scadenza.getTipoScadenza())
-                .dataScadenza(scadenza.getDataScadenza())
-                .stato(scadenza.getStato())
-                .priorita(scadenza.getPriorita())
-                .responsabile(scadenza.getResponsabile())
-                .emailNotifica(scadenza.getEmailNotifica())
-                .giorniPreavviso(scadenza.getGiorniPreavviso())
-                .dataCompletamento(scadenza.getDataCompletamento())
-                .note(scadenza.getNote())
-                .dataPrevistaAttivazione(scadenza.getDataPrevistaAttivazione())
-                .riferimento(scadenza.getRiferimento())
-                .sitoOrigine(scadenza.getSitoOrigine())
-                .createdAt(scadenza.getCreatedAt());
-
-        if (scadenza.getStabilimento() != null) {
-            builder.stabilimentoId(scadenza.getStabilimento().getId())
-                    .stabilimentoNome(scadenza.getStabilimento().getNome());
-        }
-        if (scadenza.getPrescrizione() != null) {
-            builder.prescrizioneId(scadenza.getPrescrizione().getId());
-        }
-        if (scadenza.getMonitoraggio() != null) {
-            builder.monitoraggioId(scadenza.getMonitoraggio().getId());
-        }
-
-        return builder.build();
-    }
+    // Metodi di conversione Entity ← Request (controller responsibility)
 
     private Scadenza convertToEntity(CreateScadenzaRequest request) {
         Scadenza scadenza = new Scadenza();

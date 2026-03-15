@@ -17,7 +17,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/prescrizioni")
@@ -35,22 +34,14 @@ public class PrescrizioneController {
     @GetMapping
     @PreAuthorize("@stabilimentoAccessChecker.isAdmin()")
     public ResponseEntity<List<PrescrizioneDTO>> getAllPrescrizioni() {
-        List<Prescrizione> prescrizioni = prescrizioneService.findAll();
-        List<PrescrizioneDTO> dtos = prescrizioni.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
+        List<PrescrizioneDTO> dtos = prescrizioneService.findAllAsDTOs();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/stabilimento/{stabilimentoId}")
     @PreAuthorize("@stabilimentoAccessChecker.hasAccessToStabilimento(#stabilimentoId)")
     public ResponseEntity<List<PrescrizioneDTO>> getPrescrizioniByStabilimento(@PathVariable Long stabilimentoId) {
-        List<Prescrizione> prescrizioni = prescrizioneService.findByStabilimento(stabilimentoId);
-        List<PrescrizioneDTO> dtos = prescrizioni.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-
+        List<PrescrizioneDTO> dtos = prescrizioneService.findByStabilimentoAsDTOs(stabilimentoId);
         return ResponseEntity.ok(dtos);
     }
 
@@ -65,7 +56,7 @@ public class PrescrizioneController {
             throw new ResourceNotFoundException("Prescrizione", "id", id);
         }
 
-        return ResponseEntity.ok(convertToDTO(prescrizione));
+        return ResponseEntity.ok(prescrizioneService.findByIdAsDTO(id).orElseThrow());
     }
 
     @PostMapping
@@ -77,9 +68,9 @@ public class PrescrizioneController {
         }
 
         Prescrizione prescrizione = convertToEntity(request);
-        Prescrizione saved = prescrizioneService.save(prescrizione);
+        PrescrizioneDTO dto = prescrizioneService.saveAsDTO(prescrizione);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(convertToDTO(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")
@@ -97,9 +88,9 @@ public class PrescrizioneController {
         }
 
         updateEntityFromRequest(existing, request);
-        Prescrizione updated = prescrizioneService.save(existing);
+        PrescrizioneDTO dto = prescrizioneService.saveAsDTO(existing);
 
-        return ResponseEntity.ok(convertToDTO(updated));
+        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}")
@@ -117,28 +108,7 @@ public class PrescrizioneController {
         return ResponseEntity.noContent().build();
     }
 
-    // Metodi di conversione DTO <-> Entity
-
-    private PrescrizioneDTO convertToDTO(Prescrizione prescrizione) {
-        return PrescrizioneDTO.builder()
-                .id(prescrizione.getId())
-                .stabilimentoId(prescrizione.getStabilimento().getId())
-                .stabilimentoNome(prescrizione.getStabilimento().getNome())
-                .codice(prescrizione.getCodice())
-                .descrizione(prescrizione.getDescrizione())
-                .matriceAmbientale(prescrizione.getMatriceAmbientale())
-                .stato(prescrizione.getStato())
-                .dataEmissione(prescrizione.getDataEmissione())
-                .dataScadenza(prescrizione.getDataScadenza())
-                .enteEmittente(prescrizione.getEnteEmittente())
-                .riferimentoNormativo(prescrizione.getRiferimentoNormativo())
-                .priorita(prescrizione.getPriorita())
-                .note(prescrizione.getNote())
-                .dataChiusura(prescrizione.getDataChiusura())
-                .createdAt(prescrizione.getCreatedAt())
-                .updatedAt(prescrizione.getUpdatedAt())
-                .build();
-    }
+    // Metodi di conversione Entity ← Request (controller responsibility)
 
     private Prescrizione convertToEntity(CreatePrescrizioneRequest request) {
         Stabilimento stabilimento = stabilimentoService.findById(request.getStabilimentoId())

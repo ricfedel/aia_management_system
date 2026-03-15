@@ -125,12 +125,17 @@ export class RifiutiComponent implements OnInit {
     const id = this.filterStabilimento();
     if (!id) { this.codici.set([]); this.movimenti.set([]); return; }
     this.loadCodici();
-    this.loadMovimenti();
     this.api.getAnniRifiuti(id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({ next: anni => {
         const y = new Date().getFullYear();
-        this.anniDisp.set(anni.length ? anni : [y]);
+        const anniDisp = anni.length ? anni : [y];
+        this.anniDisp.set(anniDisp);
+        // Se l'anno corrente non ha dati, usa l'ultimo anno disponibile
+        if (anni.length && !anni.includes(this.filterAnno())) {
+          this.filterAnno.set(anni[0]); // anni è ordinato DESC: il primo è il più recente
+        }
+        this.loadMovimenti();
       }});
   }
 

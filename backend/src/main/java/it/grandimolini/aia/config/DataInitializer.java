@@ -52,6 +52,7 @@ public class DataInitializer implements CommandLineRunner {
         seedFlussoNonConformita();
         seedFlussoIntegrazioneEnte();
 
+
         // ── Carica data.sql se il DB è vuoto ─────────────────────────────────
         // Spring Boot 4 non esegue automaticamente data.sql con HikariCP:
         // lo facciamo noi via ResourceDatabasePopulator, idempotente (skip se

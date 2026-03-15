@@ -2,17 +2,19 @@ package it.grandimolini.aia.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import it.grandimolini.aia.dto.PropostaEstrazione;
+import it.grandimolini.aia.config.DataInitializer;
+import it.grandimolini.aia.dto.*;
 import it.grandimolini.aia.dto.PropostaEstrazione.*;
 import it.grandimolini.aia.exception.ResourceNotFoundException;
-import it.grandimolini.aia.model.Documento;
-import it.grandimolini.aia.repository.DocumentoRepository;
+import it.grandimolini.aia.model.*;
+import it.grandimolini.aia.repository.*;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
 import java.net.URI;
@@ -41,6 +43,14 @@ public class EstrazioneDocumentoService {
 
     @Autowired private DocumentoRepository documentoRepository;
     @Autowired private FileStorageService fileStorageService;
+    @Autowired private DocumentoService documentoService;
+    @Autowired private BpmService bpmService;
+    @Autowired private ScadenzaService scadenzaService;
+    @Autowired private PrescrizioneService prescrizioneService;
+    @Autowired private ScadenzaRepository scadenzaRepository;
+    @Autowired private PrescrizioneRepository prescrizioneRepository;
+    @Autowired private StabilimentoRepository stabilimentoRepository;
+    @Autowired private DefinizioneFlussoRepository definizioneFlussoRepository;
 
     @Value("${aia.estrazione.ai.enabled:false}")
     private boolean aiEnabled;
@@ -104,6 +114,206 @@ public class EstrazioneDocumentoService {
         "monitoragg", "MONITORAGGIO",
         "suolo|sottosuolo", "SUOLO_SOTTOSUOLO"
     );
+
+    // ─── Public endpoints ────────────────────────────────────────────────────
+
+    /**
+     * Analizza documento e avvia il processo BPM se non ancora attivo.
+     * Esegue l'estrazione OCR/AI e transiziona il documento a RICEVUTO se era BOZZA.
+     * Quindi cerca un processo attivo; se non esiste, lo crea usando il flusso
+     * di estrazione standard (oppure LAVORAZIONE_DOCUMENTO se il flusso non è configurato).
+     */
+    @Transactional
+    public PropostaEstrazione analizzaEAvviaProcesso(Long documentoId, String username) {
+        PropostaEstrazione proposta = analizzaDocumento(documentoId);
+
+        Documento doc = documentoRepository.findById(documentoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Documento", "id", documentoId));
+
+        // Aggiorna stato documento → RICEVUTO (se era BOZZA)
+        if (doc.getStatoDocumento() == null
+                || doc.getStatoDocumento() == Documento.StatoDocumento.BOZZA) {
+            documentoService.aggiornaMetadatiDms(documentoId,
+                    Documento.StatoDocumento.RICEVUTO, null, null, null, null);
+        }
+
+        // Avvia processo BPM se non già presente
+        List<ProcessoDocumento> processiEsistenti = bpmService.getProcessiByDocumento(documentoId);
+        boolean haProcessoAttivo = processiEsistenti.stream()
+                .anyMatch(p -> p.getStato() != ProcessoDocumento.StatoProcesso.COMPLETATO
+                            && p.getStato() != ProcessoDocumento.StatoProcesso.ANNULLATO);
+
+        if (!haProcessoAttivo) {
+            AvviaProcessoRequest avviaReq = new AvviaProcessoRequest();
+            avviaReq.setDocumentoId(documentoId);
+            avviaReq.setStabilimentoId(doc.getStabilimento() != null ? doc.getStabilimento().getId() : null);
+            avviaReq.setAssegnatoA(username);
+            avviaReq.setNote("Avviato automaticamente da analisi documento");
+
+            // Cerca la DefinizioneFlusso standard per l'estrazione; se trovata, usa
+            // il flusso BPMN personalizzabile invece del tipo hardcoded.
+            definizioneFlussoRepository.findByAttivaTrue().stream()
+                    .filter(df -> DataInitializer.FLUSSO_ESTRAZIONE_NOME.equals(df.getNome()))
+                    .findFirst()
+                    .ifPresentOrElse(
+                        df -> avviaReq.setDefinizioneFlussoId(df.getId()),
+                        ()  -> avviaReq.setTipoProcesso(
+                                   ProcessoDocumento.TipoProcesso.LAVORAZIONE_DOCUMENTO)
+                    );
+
+            try {
+                bpmService.avviaProcesso(avviaReq, username);
+            } catch (Exception e) {
+                // Il processo potrebbe già esistere in una race condition - ignora
+            }
+        }
+
+        return proposta;
+    }
+
+    /**
+     * Conferma l'estrazione: crea entità (scadenze, prescrizioni), aggiorna il documento
+     * e avanza il task BPM se presente.
+     */
+    @Transactional
+    public ConfermaEstrazioneResponse confermaEstrazione(Long documentoId, ConfermaEstrazioneRequest req, String username) {
+        Documento documento = documentoRepository.findById(documentoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Documento", "id", documentoId));
+
+        Long stabilimentoId = documento.getStabilimento() != null
+                ? documento.getStabilimento().getId() : null;
+
+        List<Long> idScadenze       = new ArrayList<>();
+        List<Long> idPrescrizioni   = new ArrayList<>();
+
+        // 1. Aggiorna metadati documento
+        if (req.getMetadati() != null) {
+            ConfermaEstrazioneRequest.MetadatiConfermati m = req.getMetadati();
+            documentoService.aggiornaMetadatiDms(
+                documentoId,
+                Documento.StatoDocumento.APPROVATO,
+                m.getOggetto(),
+                m.getEnteEmittente(),
+                m.getNumeroProtocollo(),
+                null
+            );
+            // Aggiorna il nome del documento se abbiamo l'oggetto
+            if (m.getOggetto() != null && !m.getOggetto().isBlank()) {
+                documento.setOggetto(m.getOggetto());
+            }
+        }
+
+        // 2. Crea Scadenze confermate
+        if (req.getScadenze() != null) {
+            for (ConfermaEstrazioneRequest.ScadenzaConfermata sc : req.getScadenze()) {
+                if (sc.getTitolo() == null || sc.getDataScadenza() == null) continue;
+
+                Long stabId = sc.getStabilimentoId() != null ? sc.getStabilimentoId() : stabilimentoId;
+                Stabilimento stab = stabId != null
+                        ? stabilimentoRepository.findById(stabId).orElse(documento.getStabilimento())
+                        : documento.getStabilimento();
+
+                Scadenza scadenza = new Scadenza();
+                scadenza.setStabilimento(stab);
+                scadenza.setTitolo(sc.getTitolo());
+                scadenza.setDescrizione(sc.getDescrizione());
+                scadenza.setDataScadenza(LocalDate.parse(sc.getDataScadenza()));
+                scadenza.setTipoScadenza(mapTipoScadenza(sc.getTipo()));
+                scadenza.setStato(Scadenza.StatoScadenza.PENDING);
+                scadenza.setNote("Creata da analisi documento: " + documento.getNome()
+                        + (req.getNoteRevisione() != null ? "\nNote operatore: " + req.getNoteRevisione() : ""));
+
+                Scadenza saved = scadenzaService.save(scadenza);
+                idScadenze.add(saved.getId());
+            }
+        }
+
+        // 3. Crea Prescrizioni confermate
+        if (req.getPrescrizioni() != null) {
+            for (ConfermaEstrazioneRequest.PrescrizioneConfermata pc : req.getPrescrizioni()) {
+                if (pc.getCodice() == null || pc.getDescrizione() == null) continue;
+
+                Long stabId = pc.getStabilimentoId() != null ? pc.getStabilimentoId() : stabilimentoId;
+                Stabilimento stab = stabId != null
+                        ? stabilimentoRepository.findById(stabId).orElse(documento.getStabilimento())
+                        : documento.getStabilimento();
+
+                if (stab == null) continue; // prescrizione richiede stabilimento
+
+                Prescrizione prescrizione = new Prescrizione();
+                prescrizione.setStabilimento(stab);
+                prescrizione.setCodice(pc.getCodice());
+                prescrizione.setDescrizione(pc.getDescrizione());
+                prescrizione.setMatriceAmbientale(mapMatriceAmbientale(pc.getTipo()));
+                prescrizione.setStato(Prescrizione.StatoPrescrizione.APERTA);
+                prescrizione.setDataEmissione(LocalDate.now());
+                if (documento.getEnteEmittente() != null) {
+                    prescrizione.setEnteEmittente(documento.getEnteEmittente());
+                }
+                prescrizione.setNote("Estratta da documento: " + documento.getNome()
+                        + (req.getNoteRevisione() != null ? "\nNote operatore: " + req.getNoteRevisione() : ""));
+
+                Prescrizione saved = prescrizioneService.save(prescrizione);
+                idPrescrizioni.add(saved.getId());
+            }
+        }
+
+        // 4. Avanza task BPM (se il processo è attivo)
+        ProcessoDocumentoDTO processoAggiornato = null;
+        if (req.getProcessoId() != null && req.getTaskId() != null) {
+            CompletaTaskRequest completaReq = new CompletaTaskRequest();
+            completaReq.setEsito("APPROVATO");
+            completaReq.setCommento("Estrazione confermata: create " + idScadenze.size()
+                    + " scadenze, " + idPrescrizioni.size() + " prescrizioni."
+                    + (req.getNoteRevisione() != null ? " Note: " + req.getNoteRevisione() : ""));
+            try {
+                ProcessoDocumento proc = bpmService.completaTask(
+                        req.getProcessoId(), req.getTaskId(), completaReq, username);
+                processoAggiornato = ProcessoDocumentoDTO.fromEntity(proc);
+            } catch (Exception e) {
+                // Non bloccare la conferma se il BPM fallisce
+            }
+        } else {
+            // Cerca e avanza il primo task attivo collegato al documento
+            List<ProcessoDocumento> processi = bpmService.getProcessiByDocumento(documentoId);
+            for (ProcessoDocumento proc : processi) {
+                if (proc.getStato() == ProcessoDocumento.StatoProcesso.COMPLETATO
+                        || proc.getStato() == ProcessoDocumento.StatoProcesso.ANNULLATO) continue;
+
+                proc.getTasks().stream()
+                    .filter(t -> t.getStatoTask() == TaskProcesso.StatoTask.IN_CORSO)
+                    .findFirst()
+                    .ifPresent(taskAttivo -> {
+                        CompletaTaskRequest cr = new CompletaTaskRequest();
+                        cr.setEsito("APPROVATO");
+                        cr.setCommento("Estrazione confermata automaticamente");
+                        try {
+                            bpmService.completaTask(proc.getId(), taskAttivo.getId(), cr, username);
+                        } catch (Exception ignored) {}
+                    });
+
+                processoAggiornato = ProcessoDocumentoDTO.fromEntity(
+                        bpmService.getProcessoById(proc.getId()));
+                break;
+            }
+        }
+
+        // 5. Costruisci risposta
+        ConfermaEstrazioneResponse response = new ConfermaEstrazioneResponse();
+        response.setSuccesso(true);
+        response.setMessaggio(String.format(
+            "Conferma completata: create %d scadenze e %d prescrizioni.",
+            idScadenze.size(), idPrescrizioni.size()
+        ));
+        response.setScadenzeCreate(idScadenze.size());
+        response.setPrescrizioniCreate(idPrescrizioni.size());
+        response.setIdScadenzeCreate(idScadenze);
+        response.setIdPrescrizioniCreate(idPrescrizioni);
+        response.setNuovoStatoDocumento(Documento.StatoDocumento.APPROVATO.name());
+        response.setProcessoAggiornato(processoAggiornato);
+
+        return response;
+    }
 
     // ─── Entry point ─────────────────────────────────────────────────────────
 
@@ -501,5 +711,31 @@ public class EstrazioneDocumentoService {
     private String pulisciTestoBreve(String testo) {
         if (testo == null) return "";
         return testo.replaceAll("\\s+", " ").trim();
+    }
+
+    // ─── Mapping helpers per conferma ─────────────────────────────────────────
+
+    private Scadenza.TipoScadenza mapTipoScadenza(String tipo) {
+        if (tipo == null) return Scadenza.TipoScadenza.ALTRO;
+        return switch (tipo.toUpperCase()) {
+            case "MONITORAGGIO"  -> Scadenza.TipoScadenza.MONITORAGGIO_PMC;
+            case "REPORTING"     -> Scadenza.TipoScadenza.RELAZIONE_ANNUALE;
+            case "COMUNICAZIONE" -> Scadenza.TipoScadenza.COMUNICAZIONE;
+            case "CAMPIONAMENTO" -> Scadenza.TipoScadenza.MONITORAGGIO_PMC;
+            default              -> Scadenza.TipoScadenza.ALTRO;
+        };
+    }
+
+    private Prescrizione.MatriceAmbientale mapMatriceAmbientale(String tipo) {
+        if (tipo == null) return Prescrizione.MatriceAmbientale.ARIA;
+        return switch (tipo.toUpperCase()) {
+            case "EMISSIONI_ATMOSFERICHE" -> Prescrizione.MatriceAmbientale.ARIA;
+            case "SCARICHI_IDRICI"        -> Prescrizione.MatriceAmbientale.ACQUA;
+            case "GESTIONE_RIFIUTI"       -> Prescrizione.MatriceAmbientale.RIFIUTI;
+            case "EMISSIONI_ACUSTICHE"    -> Prescrizione.MatriceAmbientale.RUMORE;
+            case "SUOLO_SOTTOSUOLO"       -> Prescrizione.MatriceAmbientale.SUOLO;
+            case "MONITORAGGIO"           -> Prescrizione.MatriceAmbientale.ARIA;
+            default                       -> Prescrizione.MatriceAmbientale.ARIA;
+        };
     }
 }

@@ -1,9 +1,9 @@
 package it.grandimolini.aia.service;
 
+import it.grandimolini.aia.dto.UserVM;
 import it.grandimolini.aia.model.DatiAmbientali;
 import it.grandimolini.aia.model.Prescrizione;
 import it.grandimolini.aia.model.Scadenza;
-import it.grandimolini.aia.model.User;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -155,7 +155,7 @@ public class ExcelExportService {
         }
     }
 
-    public byte[] exportUtenti(List<User> utentiList) throws IOException {
+    public byte[] exportUtenti(List<UserVM> utentiList) throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Utenti");
 
@@ -172,16 +172,16 @@ public class ExcelExportService {
             }
 
             int rowNum = 1;
-            for (User utente : utentiList) {
+            for (UserVM utente : utentiList) {
                 Row row = sheet.createRow(rowNum++);
 
                 row.createCell(0).setCellValue(utente.getId());
-                row.createCell(1).setCellValue(utente.getUsername());
-                row.createCell(2).setCellValue(utente.getFullName());
-                row.createCell(3).setCellValue(utente.getFullName());
-//                row.createCell(4).setCellValue(utente.getEmail());
-//                row.createCell(5).setCellValue(utente.getRuolo() != null ? utente.getRuolo().name() : "");
-//                row.createCell(6).setCellValue(utente.is ? "Sì" : "No");
+                row.createCell(1).setCellValue(utente.getUsername() != null ? utente.getUsername() : "");
+                row.createCell(2).setCellValue(utente.getNome() != null ? utente.getNome() : "");
+                row.createCell(3).setCellValue(utente.getCognome() != null ? utente.getCognome() : "");
+                row.createCell(4).setCellValue(utente.getEmail() != null ? utente.getEmail() : "");
+                row.createCell(5).setCellValue(utente.getRuolo() != null ? utente.getRuolo().name() : "");
+                row.createCell(6).setCellValue(Boolean.TRUE.equals(utente.getAttivo()) ? "Sì" : "No");
 
                 for (int i = 0; i < columns.length; i++) {
                     row.getCell(i).setCellStyle(dataStyle);

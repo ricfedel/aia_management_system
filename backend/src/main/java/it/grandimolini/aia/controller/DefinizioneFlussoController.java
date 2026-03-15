@@ -3,9 +3,8 @@ package it.grandimolini.aia.controller;
 import it.grandimolini.aia.dto.DefinizioneFlussoDTO;
 import it.grandimolini.aia.exception.BadRequestException;
 import it.grandimolini.aia.exception.ResourceNotFoundException;
-import it.grandimolini.aia.model.DefinizioneFlusso;
-import it.grandimolini.aia.repository.DefinizioneFlussoRepository;
 import it.grandimolini.aia.service.BpmnParserService;
+import it.grandimolini.aia.service.DefinizioneFlussoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,30 +28,25 @@ import java.util.List;
 @RequestMapping("/api/definizioni-flusso")
 public class DefinizioneFlussoController {
 
-    @Autowired private DefinizioneFlussoRepository repository;
+    @Autowired private DefinizioneFlussoService definizioneFlussoService;
     @Autowired private BpmnParserService bpmnParser;
 
     // ─── GET: lista flussi attivi ────────────────────────────────────────────
 
     @GetMapping
     public List<DefinizioneFlussoDTO> getAttivi() {
-        return repository.findByAttivaTrue().stream()
-                .map(DefinizioneFlussoDTO::fromEntity)
-                .toList();
+        return definizioneFlussoService.findAttiviAsDTOs();
     }
 
     @GetMapping("/tutti")
     public List<DefinizioneFlussoDTO> getTutti() {
-        return repository.findAll().stream()
-                .map(DefinizioneFlussoDTO::fromEntity)
-                .toList();
+        return definizioneFlussoService.findAllAsDTOs();
     }
 
     @GetMapping("/{id}")
     public DefinizioneFlussoDTO getById(@PathVariable Long id) {
-        DefinizioneFlusso df = repository.findById(id)
+        return definizioneFlussoService.findByIdAsDTO(id)
                 .orElseThrow(() -> new ResourceNotFoundException("DefinizioneFlusso", "id", id));
-        return DefinizioneFlussoDTO.fromEntity(df);
     }
 
     // ─── POST: crea nuova definizione ────────────────────────────────────────
@@ -63,15 +57,8 @@ public class DefinizioneFlussoController {
         validaRequest(req);
         parseOThrow(req.getBpmnXml()); // verifica che il BPMN sia valido prima di salvare
 
-        DefinizioneFlusso df = new DefinizioneFlusso();
-        df.setNome(req.getNome().trim());
-        df.setDescrizione(req.getDescrizione());
-        df.setBpmnXml(req.getBpmnXml());
-        df.setVersione(1);
-        df.setAttiva(true);
-        df.setCreatoDa(auth != null ? auth.getName() : "sistema");
-
-        return DefinizioneFlussoDTO.fromEntity(repository.save(df));
+        String creatoDa = auth != null ? auth.getName() : "sistema";
+        return definizioneFlussoService.creaFromRequest(req, creatoDa);
     }
 
     // ─── PUT: aggiorna definizione esistente ─────────────────────────────────
@@ -80,36 +67,19 @@ public class DefinizioneFlussoController {
     public DefinizioneFlussoDTO aggiorna(@PathVariable Long id,
                                           @RequestBody DefinizioneFlussoDTO.SaveRequest req,
                                           Authentication auth) {
-        DefinizioneFlusso df = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("DefinizioneFlusso", "id", id));
-
-        if (Boolean.TRUE.equals(df.getSistema()))
-            throw new BadRequestException("I workflow di sistema non sono modificabili.");
-
-        if (req.getNome() != null)        df.setNome(req.getNome().trim());
-        if (req.getDescrizione() != null) df.setDescrizione(req.getDescrizione());
-
-        if (req.getBpmnXml() != null && !req.getBpmnXml().equals(df.getBpmnXml())) {
-            parseOThrow(req.getBpmnXml()); // valida il nuovo XML
-            df.setBpmnXml(req.getBpmnXml());
-            df.setVersione(df.getVersione() + 1);
+        validaRequest(req);
+        if (req.getBpmnXml() != null) {
+            parseOThrow(req.getBpmnXml()); // valida il nuovo XML prima di aggiornare
         }
 
-        return DefinizioneFlussoDTO.fromEntity(repository.save(df));
+        return definizioneFlussoService.aggiornaFromRequest(id, req);
     }
 
     // ─── DELETE: soft-delete (disattiva) ─────────────────────────────────────
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> disattiva(@PathVariable Long id) {
-        DefinizioneFlusso df = repository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("DefinizioneFlusso", "id", id));
-
-        if (Boolean.TRUE.equals(df.getSistema()))
-            throw new BadRequestException("I workflow di sistema non possono essere eliminati.");
-
-        df.setAttiva(false);
-        repository.save(df);
+        definizioneFlussoService.disattiva(id);
         return ResponseEntity.noContent().build();
     }
 
@@ -126,9 +96,9 @@ public class DefinizioneFlussoController {
 
     @PostMapping("/{id}/preview")
     public List<DefinizioneFlussoDTO.StepPreview> previewById(@PathVariable Long id) {
-        DefinizioneFlusso df = repository.findById(id)
+        DefinizioneFlussoDTO dto = definizioneFlussoService.findByIdAsDTO(id)
                 .orElseThrow(() -> new ResourceNotFoundException("DefinizioneFlusso", "id", id));
-        return bpmnParser.toPreview(parseOThrow(df.getBpmnXml()));
+        return bpmnParser.toPreview(parseOThrow(dto.getBpmnXml()));
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
