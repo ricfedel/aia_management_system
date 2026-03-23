@@ -475,8 +475,24 @@
 .step-info { display: flex; flex-direction: column; gap: 2px; flex: 1; }
 .step-nome { font-weight: 500; color: #2d3748; font-size: 0.9rem; }
 .step-tipo { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-.tipo-user_task    { color: #2b6cb0; }
-.tipo-service_task { color: #c05621; }
+
+/* Tipo label colors — USER_TASK e tutti i service task sub-type */
+.tipo-user-task    { color: #2b6cb0; }
+.tipo-service-task { color: #c05621; }
+.tipo-api-call     { color: #c05621; }
+.tipo-email        { color: #c05621; }
+.tipo-timer        { color: #c05621; }
+.tipo-script       { color: #c05621; }
+.tipo-webhook      { color: #c05621; }
+.tipo-genera-pdf   { color: #c05621; }
+
+/* Step row: bordo sinistro colorato che rispecchia la legenda BPMN */
+.step-tipo-user    { border-left: 4px solid #4299e1; background: #ebf8ff; }
+.step-tipo-service { border-left: 4px solid #ed8936; background: #fffaf0; }
+
+/* Cerchio numero: colore per tipo */
+.num-user    { background: #4299e1; }
+.num-service { background: #ed8936; }
 
 /* ── Gateway explanation panels ──────────────────────────────────────────── */
 .gateway-explain {

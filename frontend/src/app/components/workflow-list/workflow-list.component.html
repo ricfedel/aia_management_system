@@ -112,12 +112,12 @@
       <div class="modal-body">
         <ol class="steps-list">
           @for (step of stepsModal()!.steps; track step.id) {
-            <li class="step-row">
-              <span class="step-num">{{ step.ordine }}</span>
+            <li [class]="'step-row step-tipo-' + (step.tipoTask === 'USER_TASK' ? 'user' : 'service')">
+              <span [class]="'step-num num-' + (step.tipoTask === 'USER_TASK' ? 'user' : 'service')">{{ step.ordine }}</span>
               <span class="step-icon">{{ tipoIcon(step.tipoTask) }}</span>
               <div class="step-info">
                 <span class="step-nome">{{ step.nome }}</span>
-                <span class="step-tipo" [class]="'tipo-' + step.tipoTask.toLowerCase()">
+                <span [class]="'step-tipo tipo-' + step.tipoTask.toLowerCase().replace('_', '-')">
                   {{ step.tipoTask === 'USER_TASK' ? 'Task utente' : 'Task automatico' }}
                 </span>
               </div>

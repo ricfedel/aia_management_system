@@ -426,12 +426,12 @@
           </p>
           <ol class="steps-list">
             @for (step of stepsPreview(); track step.id) {
-              <li class="step-item">
-                <span class="step-num">{{ step.ordine }}</span>
+              <li [class]="'step-item step-tipo-' + (step.tipoTask === 'USER_TASK' ? 'user' : 'service')">
+                <span [class]="'step-num num-' + (step.tipoTask === 'USER_TASK' ? 'user' : 'service')">{{ step.ordine }}</span>
                 <span class="step-icon">{{ tipoIcon(step.tipoTask) }}</span>
                 <div class="step-info">
                   <span class="step-nome">{{ step.nome }}</span>
-                  <span class="step-tipo" [class]="'tipo-' + step.tipoTask.toLowerCase().replace(':', '-')">
+                  <span [class]="'step-tipo tipo-' + step.tipoTask.toLowerCase().replace('_', '-')">
                     {{ step.tipoTask === 'USER_TASK' ? 'Task utente' :
                        step.tipoTask.includes('EMAIL') ? 'Email automatica' :
                        step.tipoTask.includes('TIMER') ? 'Timer / Attesa' :
