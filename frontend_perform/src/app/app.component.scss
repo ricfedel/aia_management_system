@@ -1,0 +1,18 @@
+.main-content {
+    margin-left: var(--sidebar-width, 240px);
+    padding-top: calc(var(--header-height, 64px) + 12px);
+    min-height: 100vh;
+    background: #E6E9F2;
+    transition: margin-left 0.25s ease;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 24px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 575.98px) {
+    .main-content {
+        margin-left: 0;
+        padding-top: calc(64px + 56px + 12px);
+    }
+}

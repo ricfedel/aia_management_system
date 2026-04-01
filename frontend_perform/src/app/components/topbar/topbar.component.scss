@@ -1,0 +1,191 @@
+/* ── Topbar — identico a PerformPlus ───────────────────────────── */
+.topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background: #ffffff;
+    border-bottom: 1px solid #E9E9E9;
+    display: flex;
+    align-items: center;
+    padding: 0 16px 0 0;
+    z-index: 1100;
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-left: 0;
+}
+
+.toggle-sidebar-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #555;
+    width: 44px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, color 0.2s;
+    flex-shrink: 0;
+}
+
+.toggle-sidebar-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--default-bg, #003366);
+}
+
+.header-logo {
+    display: block;
+    height: 46px;
+    max-width: 140px;
+    object-fit: contain;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.company-name {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--default-bg, #003366);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
+}
+
+.app-subtitle {
+    font-size: 9px;
+    font-weight: 600;
+    color: #9B9B9B;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+
+.topbar-spacer { flex: 1; }
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar-divider {
+    width: 1px;
+    height: 24px;
+    background: #E9E9E9;
+}
+
+.lang-switcher {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.lang-btn {
+    background: none;
+    border: none;
+    color: #9B9B9B;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 3px;
+    transition: color 0.2s, background 0.2s;
+    font-family: 'Titilliumweb', sans-serif;
+}
+
+.lang-btn:hover {
+    background: #E6E9F2;
+    color: var(--default-bg, #003366);
+}
+
+.lang-btn.active {
+    color: var(--default-bg, #003366);
+    font-weight: 700;
+}
+
+.lang-sep {
+    color: #D1D5DB;
+    font-size: 12px;
+}
+
+.user-block {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    background: var(--default-bg, #003366);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #3D3D3D;
+    white-space: nowrap;
+}
+
+.user-role {
+    font-size: 10px;
+    color: var(--default-bg, #003366);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.btn-logout {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    background: none;
+    border: 1px solid #E9E9E9;
+    border-radius: 3px;
+    color: #9B9B9B;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    font-family: 'Titilliumweb', sans-serif;
+}
+
+.btn-logout:hover {
+    background: #fff1f1;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+@media (max-width: 575.98px) {
+    .brand-text   { display: none; }
+    .user-info    { display: none; }
+    .logout-label { display: none; }
+}

@@ -1,0 +1,357 @@
+<div class="dashboard-container">
+  <h1>{{ 'dashboard.title' | translate }}</h1>
+  <p class="subtitle">{{ 'dashboard.subtitle' | translate }}</p>
+
+  <!-- Cards statistiche -->
+  <div class="stats-grid">
+    <div class="stat-card"
+         [class.stat-card--clickable]="isAdmin"
+         (click)="navigateTo('/stabilimenti', isAdmin)">
+      <div class="stat-icon">🏭</div>
+      <div class="stat-value">{{ stats.stabilimentiAttivi }}</div>
+      <div class="stat-label">{{ 'dashboard.stabilimentiAttivi' | translate }}</div>
+    </div>
+
+    <div class="stat-card"
+         [class.stat-card--clickable]="isResponsabileOrAdmin"
+         (click)="navigateTo('/prescrizioni', isResponsabileOrAdmin)">
+      <div class="stat-icon">📋</div>
+      <div class="stat-value">{{ stats.prescrizioniAperte }}</div>
+      <div class="stat-label">{{ 'dashboard.prescrizioniAperte' | translate }}</div>
+    </div>
+
+    <div class="stat-card warning"
+         [class.stat-card--clickable]="isResponsabileOrAdmin"
+         (click)="navigateTo('/scadenze', isResponsabileOrAdmin)">
+      <div class="stat-icon">⏰</div>
+      <div class="stat-value">{{ stats.scadenzeImminenti }}</div>
+      <div class="stat-label">{{ 'dashboard.scadenzeImminenti' | translate }}</div>
+    </div>
+
+    <div class="stat-card danger"
+         [class.stat-card--clickable]="isResponsabileOrAdmin"
+         (click)="navigateTo('/dati-ambientali', isResponsabileOrAdmin)">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-value">{{ stats.nonConformita }}</div>
+      <div class="stat-label">{{ 'dashboard.nonConformita' | translate }}</div>
+    </div>
+  </div>
+
+  <!-- Tabelle principali -->
+  <div class="content-grid">
+    <!-- Stabilimenti -->
+    <div class="section">
+      <h2>🏭 {{ 'dashboard.stabilimentiSection' | translate }}
+        <a *ngIf="isAdmin" class="section-link" (click)="navigateTo('/stabilimenti', isAdmin)">Gestisci →</a>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'dashboard.nome' | translate }}</th>
+              <th>{{ 'dashboard.citta' | translate }}</th>
+              <th>{{ 'dashboard.numeroAIA' | translate }}</th>
+              <th>{{ 'dashboard.scadenzaAIA' | translate }}</th>
+              <th>{{ 'dashboard.altreAutorizzazioni' | translate }}</th>
+              <th>{{ 'dashboard.responsabile' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let stabilimento of stabilimenti"
+                [class.row-clickable]="isAdmin"
+                (click)="navigateTo('/stabilimenti', isAdmin)">
+              <td><strong>{{ stabilimento.nome }}</strong></td>
+              <td>{{ stabilimento.citta }}</td>
+              <td>{{ stabilimento.numeroAIA }}</td>
+              <td>{{ stabilimento.dataScadenzaAIA | date: 'dd/MM/yyyy' }}</td>
+              <td>
+                <span *ngIf="getAltreAutorizzazioni(stabilimento.id).length === 0" class="no-altre-auth">—</span>
+                <span *ngFor="let auth of getAltreAutorizzazioni(stabilimento.id)"
+                      class="badge-altra-auth"
+                      [title]="auth.numeroAutorizzazione + ' - scad. ' + (auth.dataScadenza | date:'dd/MM/yyyy')">
+                  {{ auth.tipo | enumTranslate:'tipoAltraAutorizzazione' }}
+                </span>
+              </td>
+              <td>{{ stabilimento.responsabileAmbientale }}</td>
+            </tr>
+            <tr *ngIf="stabilimenti.length === 0">
+              <td colspan="6" class="no-data">{{ 'dashboard.noStabilimenti' | translate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Scadenze Imminenti (90 giorni) -->
+    <div class="section">
+      <h2>⏰ {{ 'dashboard.scadenzeSection' | translate }}
+        <a *ngIf="isResponsabileOrAdmin" class="section-link" (click)="navigateTo('/scadenze', isResponsabileOrAdmin)">Gestisci →</a>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'dashboard.titolo' | translate }}</th>
+              <th>{{ 'dashboard.stabilimento' | translate }}</th>
+              <th>{{ 'dashboard.dataScadenza' | translate }}</th>
+              <th>{{ 'dashboard.giorniRimanenti' | translate }}</th>
+              <th>{{ 'dashboard.responsabile' | translate }}</th>
+              <th>{{ 'dashboard.priorita' | translate }}</th>
+              <th>{{ 'dashboard.tipo' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let scadenza of scadenzeProssime"
+                [class.row-clickable]="isResponsabileOrAdmin"
+                (click)="navigateTo('/scadenze', isResponsabileOrAdmin)">
+              <td><strong>{{ scadenza.titolo }}</strong></td>
+              <td>{{ scadenza.stabilimentoNome }}</td>
+              <td>{{ scadenza.dataScadenza | date: 'dd/MM/yyyy' }}</td>
+              <td><span [class]="getGiorniRimanestiClass(scadenza.giorniRimanenti)">{{ scadenza.giorniRimanenti }}gg</span></td>
+              <td>{{ scadenza.responsabile || '—' }}</td>
+              <td><span [class]="getPrioritaClass(scadenza.priorita || '')">{{ scadenza.priorita | enumTranslate:'priorita' }}</span></td>
+              <td>{{ scadenza.tipoScadenza | enumTranslate:'tipoScadenza' }}</td>
+            </tr>
+            <tr *ngIf="scadenzeProssime.length === 0">
+              <td colspan="7" class="no-data">{{ 'dashboard.noScadenze' | translate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Prescrizioni Aperte -->
+    <div class="section">
+      <h2>📋 {{ 'dashboard.prescrizioniSection' | translate }}
+        <a *ngIf="isResponsabileOrAdmin" class="section-link" (click)="navigateTo('/prescrizioni', isResponsabileOrAdmin)">Gestisci →</a>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'dashboard.codice' | translate }}</th>
+              <th>{{ 'dashboard.descrizione' | translate }}</th>
+              <th>{{ 'dashboard.tipoAutorizzazione' | translate }}</th>
+              <th>{{ 'dashboard.matrice' | translate }}</th>
+              <th>{{ 'dashboard.stato' | translate }}</th>
+              <th>{{ 'dashboard.priorita' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let prescrizione of getPrescrizioniAperte()"
+                [class.row-clickable]="isResponsabileOrAdmin"
+                (click)="navigateTo('/prescrizioni', isResponsabileOrAdmin)">
+              <td><strong>{{ prescrizione.codice }}</strong></td>
+              <td>{{ prescrizione.descrizione }}</td>
+              <td>{{ prescrizione.tipoAutorizzazione ? (prescrizione.tipoAutorizzazione | enumTranslate:'tipoAutorizzazione') : '—' }}</td>
+              <td>{{ prescrizione.matriceAmbientale | enumTranslate:'matriceAmbientale' }}</td>
+              <td>{{ prescrizione.stato | enumTranslate:'statoPrescrizione' }}</td>
+              <td><span [class]="getPrioritaClass(prescrizione.priorita || '')">{{ prescrizione.priorita | enumTranslate:'priorita' }}</span></td>
+            </tr>
+            <tr *ngIf="prescrizioni.length === 0">
+              <td colspan="6" class="no-data">{{ 'dashboard.noPrescrizioni' | translate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Dati Non Conformi -->
+    <div class="section">
+      <h2>⚠️ {{ 'dashboard.datiNonConformiSection' | translate }}
+        <a *ngIf="isResponsabileOrAdmin" class="section-link" (click)="navigateTo('/dati-ambientali', isResponsabileOrAdmin)">Gestisci →</a>
+      </h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>{{ 'dashboard.data' | translate }}</th>
+              <th>{{ 'dashboard.parametro' | translate }}</th>
+              <th>{{ 'dashboard.valore' | translate }}</th>
+              <th>{{ 'dashboard.limite' | translate }}</th>
+              <th>{{ 'dashboard.stato' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let dato of datiNonConformi"
+                [class.row-clickable]="isResponsabileOrAdmin"
+                (click)="navigateTo('/dati-ambientali', isResponsabileOrAdmin)">
+              <td>{{ dato.dataCampionamento | date: 'dd/MM/yyyy' }}</td>
+              <td><strong>{{ dato.parametro }}</strong></td>
+              <td>{{ dato.valoreMisurato }} {{ dato.unitaMisura }}</td>
+              <td>{{ dato.limiteAutorizzato }} {{ dato.unitaMisura }}</td>
+              <td><span [class]="getConformitaClass(dato.statoConformita || '')">{{ dato.statoConformita | enumTranslate:'statoConformita' }}</span></td>
+            </tr>
+            <tr *ngIf="datiNonConformi.length === 0">
+              <td colspan="5" class="no-data">{{ 'dashboard.noDatiNonConformi' | translate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI Ambientali -->
+  <div class="section section-full" *ngIf="kpiAmbientali.length > 0">
+    <h2>📊 {{ 'dashboard.kpiSection' | translate }}</h2>
+    <div class="kpi-grid">
+      <div class="kpi-card" *ngFor="let kpi of kpiAmbientali">
+        <div class="kpi-header">
+          <strong>{{ kpi.stabilimentoNome }}</strong>
+          <span class="kpi-anno">{{ kpi.annoRiferimento }}</span>
+        </div>
+        <div class="kpi-body">
+          <div class="kpi-row">
+            <span class="kpi-label">💧 {{ 'dashboard.kpiAcqua' | translate }}</span>
+            <span class="kpi-value">{{ kpi.consumoIdrico | number:'1.0-0' }} m³</span>
+            <span class="kpi-specific" *ngIf="kpi.produzioneTotale > 0">
+              ({{ kpi.consumoIdricoSpecifico | number:'1.2-2' }} m³/t)
+            </span>
+          </div>
+          <div class="kpi-row">
+            <span class="kpi-label">⚡ {{ 'dashboard.kpiElettrico' | translate }}</span>
+            <span class="kpi-value">{{ kpi.consumoEletrico | number:'1.0-0' }} kWh</span>
+            <span class="kpi-specific" *ngIf="kpi.produzioneTotale > 0">
+              ({{ kpi.consumoEletricoSpecifico | number:'1.2-2' }} kWh/t)
+            </span>
+          </div>
+          <div class="kpi-row">
+            <span class="kpi-label">🔥 {{ 'dashboard.kpiGas' | translate }}</span>
+            <span class="kpi-value">{{ kpi.consumoGas | number:'1.0-0' }} Nm³</span>
+            <span class="kpi-specific" *ngIf="kpi.produzioneTotale > 0">
+              ({{ kpi.consumoGasSpecifico | number:'1.2-2' }} Nm³/t)
+            </span>
+          </div>
+          <div class="kpi-divider"></div>
+          <div class="kpi-row">
+            <span class="kpi-label">🗑 {{ 'dashboard.kpiRifiutiTot' | translate }}</span>
+            <span class="kpi-value">{{ kpi.rifiutiTotali | number:'1.2-2' }} t</span>
+            <span [class]="getRifiutiClass(kpi.rifiutiTotaliOk)" [title]="'Limite: ' + kpi.limiteRifiutiTotali + ' m³'">
+              {{ kpi.rifiutiTotaliOk ? '✓' : '⚠' }}
+            </span>
+          </div>
+          <div class="kpi-row">
+            <span class="kpi-label">☣ {{ 'dashboard.kpiRifiutiPer' | translate }}</span>
+            <span class="kpi-value">{{ kpi.rifiutiPericolosi | number:'1.2-2' }} t</span>
+            <span [class]="getRifiutiClass(kpi.rifiutiPericolosiOk)" [title]="'Limite: ' + kpi.limiteRifiutiPericolosi + ' m³'">
+              {{ kpi.rifiutiPericolosiOk ? '✓' : '⚠' }}
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stato Campionamenti -->
+  <div class="section section-full" *ngIf="statoCampionamenti.length > 0">
+    <h2>🔬 {{ 'dashboard.campionamentiSection' | translate }}</h2>
+    <div *ngFor="let stabilimentoNome of getCampionamentiStabilimenti()" class="camp-stabilimento">
+      <h3 class="camp-stabilimento-title">🏭 {{ stabilimentoNome }}</h3>
+      <div class="camp-grid">
+        <div class="camp-card camp-card--clickable" *ngFor="let c of campionamentiPerStabilimento.get(stabilimentoNome)"
+             [class]="getCampionamentoClass(c.statoColore)"
+             [title]="c.statoDescrizione"
+             (click)="navigateToPuntiMonitoraggio(c.monitoraggioId)">
+          <div class="camp-codice">{{ c.codice }}</div>
+          <div class="camp-tipo">{{ c.tipoMonitoraggio | enumTranslate:'tipoMonitoraggio' }}</div>
+          <div class="camp-data" *ngIf="c.dataUltimoCampionamento">
+            {{ c.dataUltimoCampionamento | date:'dd/MM/yy' }}
+          </div>
+          <div class="camp-data camp-no-data" *ngIf="!c.dataUltimoCampionamento">
+            Non campionato
+          </div>
+          <div class="camp-scadenza" *ngIf="c.prossimaScadenza">
+            ▶ {{ c.prossimaScadenza | date:'dd/MM/yy' }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendario Campionamenti -->
+  <div class="section section-full" *ngIf="statoCampionamenti.length > 0">
+    <h2>📅 {{ 'dashboard.calendarioSection' | translate }}</h2>
+    <div class="cal-header">
+      <button class="cal-nav" (click)="calendarPrevMese()">‹</button>
+      <span class="cal-titolo">{{ NOMI_MESI[calendarMese] }} {{ calendarAnno }}</span>
+      <button class="cal-nav" (click)="calendarNextMese()">›</button>
+    </div>
+    <div class="cal-grid">
+      <!-- Intestazione giorni settimana -->
+      <div class="cal-dow" *ngFor="let g of NOMI_GIORNI">{{ g }}</div>
+      <!-- Offset iniziale -->
+      <div class="cal-cell cal-empty" *ngFor="let x of getCalendarOffset()"></div>
+      <!-- Giorni -->
+      <div class="cal-cell"
+           *ngFor="let day of calendarDays"
+           [class.cal-today]="isToday(day.date)"
+           [class.cal-has-events]="day.campionamenti.length > 0"
+           [class.cal-selected]="selectedDay != null && selectedDay.date.getTime() === day.date.getTime()"
+           (click)="selectCalendarDay(day)">
+        <div class="cal-num">{{ day.date.getDate() }}</div>
+        <div class="cal-event"
+             *ngFor="let c of day.campionamenti"
+             [class]="getCampionamentoClass(c.statoColore)"
+             [title]="c.stabilimentoNome + ' – ' + c.codice + ' – ' + c.descrizione">
+          {{ c.stabilimentoNome | slice:0:3 }} · {{ c.codice }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Dettaglio giorno selezionato (più campionamenti) -->
+    <div *ngIf="selectedDay" class="cal-detail">
+      <div class="cal-detail-header">
+        <strong>📅 {{ selectedDay.date | date:'EEEE d MMMM yyyy':'':'it' }}</strong>
+        <button class="cal-detail-close" (click)="selectedDay = null">✕</button>
+      </div>
+      <div class="cal-detail-list">
+        <div class="cal-detail-row" *ngFor="let c of selectedDay.campionamenti"
+             [class]="getCampionamentoClass(c.statoColore)"
+             (click)="navigateToPuntiMonitoraggio(c.monitoraggioId)">
+          <span class="cal-detail-codice">{{ c.codice }}</span>
+          <span class="cal-detail-stab">{{ c.stabilimentoNome }}</span>
+          <span class="cal-detail-desc">{{ c.descrizione }}</span>
+          <span class="cal-detail-stato">{{ c.statoDescrizione }}</span>
+          <span class="cal-detail-nav">→</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pulsante Relazione Annuale -->
+  <button class="btn-relazione-float" (click)="showRelazioneForm = !showRelazioneForm" [title]="'dashboard.generateRelazione' | translate">
+    📑
+  </button>
+
+  <!-- Form Relazione Annuale -->
+  <div *ngIf="showRelazioneForm" class="relazione-popup">
+    <div class="relazione-content">
+      <h3>📑 {{ 'dashboard.relazioneTitle' | translate }}</h3>
+
+      <div class="form-group">
+        <label>{{ 'dashboard.stabilimento' | translate }}:</label>
+        <select [(ngModel)]="relazioneStabilimentoId">
+          <option value="">{{ 'dashboard.selectStabilimento' | translate }}</option>
+          <option *ngFor="let stab of stabilimenti" [value]="stab.id">
+            {{stab.nome}} - {{stab.citta}}
+          </option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>{{ 'dashboard.anno' | translate }}:</label>
+        <select [(ngModel)]="relazioneAnno">
+          <option *ngFor="let anno of anniDisponibili" [value]="anno">{{anno}}</option>
+        </select>
+      </div>
+
+      <div class="relazione-actions">
+        <button class="btn-cancel" (click)="showRelazioneForm = false">{{ 'dashboard.annulla' | translate }}</button>
+        <button class="btn-generate" (click)="generateRelazione()"
+                [disabled]="!relazioneStabilimentoId">
+          📥 {{ 'dashboard.generaDocumento' | translate }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

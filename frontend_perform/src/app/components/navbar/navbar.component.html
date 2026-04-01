@@ -1,0 +1,230 @@
+@if (currentUser()) {
+<aside class="sidebar" [class.collapsed]="sidebar.collapsed()">
+
+  <!-- Navigazione principale -->
+  <nav class="sidebar-nav">
+    <ul>
+
+      <!-- Dashboard -->
+      <li>
+        <a routerLink="/dashboard" routerLinkActive="active"
+           [routerLinkActiveOptions]="{exact:true}"
+           [title]="sidebar.collapsed() ? 'Dashboard' : ''">
+          <i-bs name="speedometer2"></i-bs>
+          @if (!sidebar.collapsed()) {
+            <span>Dashboard</span>
+          }
+        </a>
+      </li>
+
+      <!-- ═══ GESTIONE AIA ═══ -->
+      <li class="nav-group">
+        <button class="nav-group-header"
+                [class.active]="isGroupActive(['/stabilimenti','/prescrizioni','/scadenze'])"
+                [class.open]="openGroup() === 'gestione-aia'"
+                (click)="toggleGroup('gestione-aia')"
+                [title]="sidebar.collapsed() ? 'Gestione AIA' : ''">
+          <i-bs name="bank"></i-bs>
+          @if (!sidebar.collapsed()) {
+            <span class="nav-group-label">Gestione AIA</span>
+            <i-bs name="chevron-right" class="nav-chevron" [class.rotated]="openGroup() === 'gestione-aia'"></i-bs>
+          }
+        </button>
+        @if (!sidebar.collapsed() && openGroup() === 'gestione-aia') {
+          <ul class="nav-sub">
+            <li>
+              <a routerLink="/stabilimenti" routerLinkActive="active">
+                <i-bs name="building"></i-bs>
+                <span>Stabilimenti</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/prescrizioni" routerLinkActive="active">
+                <i-bs name="file-text"></i-bs>
+                <span>Prescrizioni</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/scadenze" routerLinkActive="active">
+                <i-bs name="clock"></i-bs>
+                <span>Scadenze</span>
+              </a>
+            </li>
+          </ul>
+        }
+      </li>
+
+      <!-- ═══ MONITORAGGIO ═══ -->
+      <li class="nav-group">
+        <button class="nav-group-header"
+                [class.active]="isGroupActive(['/anagrafica-camini','/punti-monitoraggio','/dati-ambientali','/conformita'])"
+                [class.open]="openGroup() === 'monitoraggio'"
+                (click)="toggleGroup('monitoraggio')"
+                [title]="sidebar.collapsed() ? 'Monitoraggio' : ''">
+          <i-bs name="broadcast"></i-bs>
+          @if (!sidebar.collapsed()) {
+            <span class="nav-group-label">Monitoraggio</span>
+            <i-bs name="chevron-right" class="nav-chevron" [class.rotated]="openGroup() === 'monitoraggio'"></i-bs>
+          }
+        </button>
+        @if (!sidebar.collapsed() && openGroup() === 'monitoraggio') {
+          <ul class="nav-sub">
+            <li>
+              <a routerLink="/anagrafica-camini" routerLinkActive="active">
+                <i-bs name="wind"></i-bs>
+                <span>Anagrafica camini</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/punti-monitoraggio" routerLinkActive="active">
+                <i-bs name="geo-alt"></i-bs>
+                <span>Punti PMC</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/dati-ambientali" routerLinkActive="active">
+                <i-bs name="tree"></i-bs>
+                <span>Dati ambientali</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/conformita" routerLinkActive="active">
+                <i-bs name="shield-check"></i-bs>
+                <span>Conformità</span>
+              </a>
+            </li>
+          </ul>
+        }
+      </li>
+
+      <!-- ═══ PRODUZIONE ═══ -->
+      <li class="nav-group">
+        <button class="nav-group-header"
+                [class.active]="isGroupActive(['/produzione-consumi','/rifiuti'])"
+                [class.open]="openGroup() === 'produzione'"
+                (click)="toggleGroup('produzione')"
+                [title]="sidebar.collapsed() ? 'Produzione' : ''">
+          <i-bs name="gear-wide-connected"></i-bs>
+          @if (!sidebar.collapsed()) {
+            <span class="nav-group-label">Produzione</span>
+            <i-bs name="chevron-right" class="nav-chevron" [class.rotated]="openGroup() === 'produzione'"></i-bs>
+          }
+        </button>
+        @if (!sidebar.collapsed() && openGroup() === 'produzione') {
+          <ul class="nav-sub">
+            <li>
+              <a routerLink="/produzione-consumi" routerLinkActive="active">
+                <i-bs name="bar-chart"></i-bs>
+                <span>Produzione &amp; Consumi</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/rifiuti" routerLinkActive="active">
+                <i-bs name="recycle"></i-bs>
+                <span>Rifiuti</span>
+              </a>
+            </li>
+          </ul>
+        }
+      </li>
+
+      <!-- ═══ REPORTISTICA ═══ -->
+      <li class="nav-group">
+        <button class="nav-group-header"
+                [class.active]="isGroupActive(['/relazione-annuale','/comunicazioni'])"
+                [class.open]="openGroup() === 'reportistica'"
+                (click)="toggleGroup('reportistica')"
+                [title]="sidebar.collapsed() ? 'Reportistica' : ''">
+          <i-bs name="graph-up"></i-bs>
+          @if (!sidebar.collapsed()) {
+            <span class="nav-group-label">Reportistica</span>
+            <i-bs name="chevron-right" class="nav-chevron" [class.rotated]="openGroup() === 'reportistica'"></i-bs>
+          }
+        </button>
+        @if (!sidebar.collapsed() && openGroup() === 'reportistica') {
+          <ul class="nav-sub">
+            <li>
+              <a routerLink="/relazione-annuale" routerLinkActive="active">
+                <i-bs name="file-earmark-text"></i-bs>
+                <span>Relazione AIA</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/comunicazioni" routerLinkActive="active">
+                <i-bs name="envelope"></i-bs>
+                <span>Comunicazioni</span>
+              </a>
+            </li>
+          </ul>
+        }
+      </li>
+
+      <!-- ═══ DOCUMENTI & PROCESSI ═══ -->
+      <li class="nav-group">
+        <button class="nav-group-header"
+                [class.active]="isGroupActive(['/documenti','/processi','/workflow'])"
+                [class.open]="openGroup() === 'documenti'"
+                (click)="toggleGroup('documenti')"
+                [title]="sidebar.collapsed() ? 'Documenti & Processi' : ''">
+          <i-bs name="folder2-open"></i-bs>
+          @if (!sidebar.collapsed()) {
+            <span class="nav-group-label">Documenti &amp; Processi</span>
+            <i-bs name="chevron-right" class="nav-chevron" [class.rotated]="openGroup() === 'documenti'"></i-bs>
+          }
+        </button>
+        @if (!sidebar.collapsed() && openGroup() === 'documenti') {
+          <ul class="nav-sub">
+            <li>
+              <a routerLink="/documenti" routerLinkActive="active">
+                <i-bs name="archive"></i-bs>
+                <span>Documenti</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/processi" routerLinkActive="active">
+                <i-bs name="diagram-3"></i-bs>
+                <span>Processi BPM</span>
+              </a>
+            </li>
+            <li>
+              <a routerLink="/workflow" routerLinkActive="active">
+                <i-bs name="bezier2"></i-bs>
+                <span>Workflow</span>
+              </a>
+            </li>
+          </ul>
+        }
+      </li>
+
+      <!-- ═══ AMMINISTRAZIONE (solo ADMIN) ═══ -->
+      @if (isAdmin()) {
+        <li class="nav-group">
+          <button class="nav-group-header"
+                  [class.active]="isGroupActive(['/utenti'])"
+                  [class.open]="openGroup() === 'amministrazione'"
+                  (click)="toggleGroup('amministrazione')"
+                  [title]="sidebar.collapsed() ? 'Amministrazione' : ''">
+            <i-bs name="shield-lock"></i-bs>
+            @if (!sidebar.collapsed()) {
+              <span class="nav-group-label">Amministrazione</span>
+              <i-bs name="chevron-right" class="nav-chevron" [class.rotated]="openGroup() === 'amministrazione'"></i-bs>
+            }
+          </button>
+          @if (!sidebar.collapsed() && openGroup() === 'amministrazione') {
+            <ul class="nav-sub">
+              <li>
+                <a routerLink="/utenti" routerLinkActive="active">
+                  <i-bs name="people"></i-bs>
+                  <span>Utenti</span>
+                </a>
+              </li>
+            </ul>
+          }
+        </li>
+      }
+
+    </ul>
+  </nav>
+
+</aside>
+}

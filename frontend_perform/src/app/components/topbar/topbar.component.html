@@ -1,0 +1,59 @@
+<header class="topbar">
+
+  <!-- Sinistra: toggle + logo + nome (identico a PerformPlus) -->
+  <div class="topbar-left">
+
+    <!-- Toggle sidebar: nella header come PerformPlus -->
+    <button class="toggle-sidebar-btn" (click)="sidebarService.toggle()" title="Menu">
+      <i-bs name="list" width="1.4rem" height="1.4rem"></i-bs>
+    </button>
+
+    <!-- Logo immagine ente da environment -->
+    <img class="header-logo" [src]="logo.src" [alt]="logo.alt"
+         (error)="onLogoError($event)">
+
+    <div class="brand-text">
+      <span class="company-name">{{ ente.nomeEsteso }}</span>
+      <span class="app-subtitle">{{ ente.appNome }}</span>
+    </div>
+  </div>
+
+  <!-- Spazio centrale -->
+  <div class="topbar-spacer"></div>
+
+  <!-- Destra: lingua + utente + logout -->
+  @if (currentUser()) {
+    <div class="topbar-right">
+
+      <!-- Language switcher -->
+      <div class="lang-switcher">
+        <button class="lang-btn" [class.active]="currentLanguage() === 'it'"
+                (click)="switchLanguage('it')">IT</button>
+        <span class="lang-sep">|</span>
+        <button class="lang-btn" [class.active]="currentLanguage() === 'en'"
+                (click)="switchLanguage('en')">EN</button>
+      </div>
+
+      <div class="topbar-divider"></div>
+
+      <!-- User block -->
+      <div class="user-block">
+        <div class="user-avatar">{{ userInitials() }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ currentUser()?.nome }} {{ currentUser()?.cognome }}</span>
+          <span class="user-role">{{ currentUser()?.ruolo }}</span>
+        </div>
+      </div>
+
+      <div class="topbar-divider"></div>
+
+      <!-- Logout -->
+      <button class="btn-logout" (click)="logout()">
+        <i-bs name="box-arrow-right" width="1rem" height="1rem"></i-bs>
+        <span class="logout-label">Logout</span>
+      </button>
+
+    </div>
+  }
+
+</header>

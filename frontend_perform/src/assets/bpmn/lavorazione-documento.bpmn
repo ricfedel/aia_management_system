@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn2:definitions
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:bpmn2="http://www.omg.org/spec/BPMN/20100524/MODEL"
+  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+  id="Definitions_1"
+  targetNamespace="http://aia.grandimolini.it/bpmn"
+  exporter="AIA Management System"
+  exporterVersion="1.0">
+
+  <bpmn2:process id="Process_LavorazioneDocumento" name="Lavorazione Documento AIA" isExecutable="true">
+
+    <bpmn2:startEvent id="StartEvent_1" name="Documento ricevuto">
+      <bpmn2:outgoing>Flow_1</bpmn2:outgoing>
+    </bpmn2:startEvent>
+
+    <bpmn2:userTask id="Task_Ricezione" name="Ricezione e protocollazione documento">
+      <bpmn2:incoming>Flow_1</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_2</bpmn2:outgoing>
+    </bpmn2:userTask>
+
+    <bpmn2:userTask id="Task_RevisioneMetadati" name="Revisione metadati e classificazione">
+      <bpmn2:incoming>Flow_2</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_3</bpmn2:outgoing>
+    </bpmn2:userTask>
+
+    <bpmn2:userTask id="Task_EstrazioneEntita" name="Estrazione entità (scadenze/prescrizioni)">
+      <bpmn2:incoming>Flow_3</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_4</bpmn2:outgoing>
+    </bpmn2:userTask>
+
+    <bpmn2:userTask id="Task_Approvazione" name="Approvazione e conferma entità">
+      <bpmn2:incoming>Flow_4</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_5</bpmn2:outgoing>
+    </bpmn2:userTask>
+
+    <bpmn2:serviceTask id="Task_Archiviazione" name="Archiviazione documento">
+      <bpmn2:incoming>Flow_5</bpmn2:incoming>
+      <bpmn2:outgoing>Flow_6</bpmn2:outgoing>
+    </bpmn2:serviceTask>
+
+    <bpmn2:endEvent id="EndEvent_1" name="Documento archiviato">
+      <bpmn2:incoming>Flow_6</bpmn2:incoming>
+    </bpmn2:endEvent>
+
+    <bpmn2:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_Ricezione"/>
+    <bpmn2:sequenceFlow id="Flow_2" sourceRef="Task_Ricezione" targetRef="Task_RevisioneMetadati"/>
+    <bpmn2:sequenceFlow id="Flow_3" sourceRef="Task_RevisioneMetadati" targetRef="Task_EstrazioneEntita"/>
+    <bpmn2:sequenceFlow id="Flow_4" sourceRef="Task_EstrazioneEntita" targetRef="Task_Approvazione"/>
+    <bpmn2:sequenceFlow id="Flow_5" sourceRef="Task_Approvazione" targetRef="Task_Archiviazione"/>
+    <bpmn2:sequenceFlow id="Flow_6" sourceRef="Task_Archiviazione" targetRef="EndEvent_1"/>
+
+  </bpmn2:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_LavorazioneDocumento">
+
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1">
+        <dc:Bounds x="152" y="202" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="128" y="245" width="84" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Ricezione_di" bpmnElement="Task_Ricezione">
+        <dc:Bounds x="240" y="180" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_RevisioneMetadati_di" bpmnElement="Task_RevisioneMetadati">
+        <dc:Bounds x="460" y="180" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_EstrazioneEntita_di" bpmnElement="Task_EstrazioneEntita">
+        <dc:Bounds x="680" y="180" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Approvazione_di" bpmnElement="Task_Approvazione">
+        <dc:Bounds x="900" y="180" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="Task_Archiviazione_di" bpmnElement="Task_Archiviazione">
+        <dc:Bounds x="1120" y="180" width="160" height="80"/>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1">
+        <dc:Bounds x="1342" y="202" width="36" height="36"/>
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1316" y="245" width="88" height="27"/>
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1">
+        <di:waypoint x="188" y="220"/>
+        <di:waypoint x="240" y="220"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2">
+        <di:waypoint x="400" y="220"/>
+        <di:waypoint x="460" y="220"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3">
+        <di:waypoint x="620" y="220"/>
+        <di:waypoint x="680" y="220"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4">
+        <di:waypoint x="840" y="220"/>
+        <di:waypoint x="900" y="220"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5">
+        <di:waypoint x="1060" y="220"/>
+        <di:waypoint x="1120" y="220"/>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6">
+        <di:waypoint x="1280" y="220"/>
+        <di:waypoint x="1342" y="220"/>
+      </bpmndi:BPMNEdge>
+
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn2:definitions>

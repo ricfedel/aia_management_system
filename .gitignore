@@ -6,6 +6,8 @@
 # Frontend
 frontend/node_modules/
 frontend/dist/
+frontend_perform/node_modules/
+frontend_perform/dist/
 
 # Backend
 backend/target/
