@@ -48,6 +48,10 @@ public class Prescrizione {
     private String descrizione;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "tipo_autorizzazione")
+    private TipoAutorizzazione tipoAutorizzazione;
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "matrice_ambientale")
     private MatriceAmbientale matriceAmbientale;
 
@@ -95,6 +99,10 @@ public class Prescrizione {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public enum TipoAutorizzazione {
+        AIA, SCARICO_ACQUE, BONIFICHE, EMISSIONI_ATMOSFERA, RIFIUTI, ALTRO
     }
 
     public enum MatriceAmbientale {

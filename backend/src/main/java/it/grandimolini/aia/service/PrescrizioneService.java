@@ -82,6 +82,7 @@ public class PrescrizioneService {
                 .stabilimentoNome(prescrizione.getStabilimento().getNome())
                 .codice(prescrizione.getCodice())
                 .descrizione(prescrizione.getDescrizione())
+                .tipoAutorizzazione(prescrizione.getTipoAutorizzazione())
                 .matriceAmbientale(prescrizione.getMatriceAmbientale())
                 .stato(prescrizione.getStato())
                 .dataEmissione(prescrizione.getDataEmissione())

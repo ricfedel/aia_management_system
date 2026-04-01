@@ -3,6 +3,7 @@ package it.grandimolini.aia.dto;
 import it.grandimolini.aia.model.Prescrizione.MatriceAmbientale;
 import it.grandimolini.aia.model.Prescrizione.Priorita;
 import it.grandimolini.aia.model.Prescrizione.StatoPrescrizione;
+import it.grandimolini.aia.model.Prescrizione.TipoAutorizzazione;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -21,6 +22,7 @@ public class PrescrizioneDTO {
     private String stabilimentoNome;
     private String codice;
     private String descrizione;
+    private TipoAutorizzazione tipoAutorizzazione;
     private MatriceAmbientale matriceAmbientale;
     private StatoPrescrizione stato;
     private LocalDate dataEmissione;

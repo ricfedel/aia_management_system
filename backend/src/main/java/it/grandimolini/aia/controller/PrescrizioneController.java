@@ -118,6 +118,7 @@ public class PrescrizioneController {
         prescrizione.setStabilimento(stabilimento);
         prescrizione.setCodice(request.getCodice());
         prescrizione.setDescrizione(request.getDescrizione());
+        prescrizione.setTipoAutorizzazione(request.getTipoAutorizzazione());
         prescrizione.setMatriceAmbientale(request.getMatriceAmbientale());
         prescrizione.setStato(request.getStato() != null ? request.getStato() : Prescrizione.StatoPrescrizione.APERTA);
         prescrizione.setDataEmissione(request.getDataEmissione());
@@ -135,6 +136,9 @@ public class PrescrizioneController {
         }
         if (request.getDescrizione() != null) {
             prescrizione.setDescrizione(request.getDescrizione());
+        }
+        if (request.getTipoAutorizzazione() != null) {
+            prescrizione.setTipoAutorizzazione(request.getTipoAutorizzazione());
         }
         if (request.getMatriceAmbientale() != null) {
             prescrizione.setMatriceAmbientale(request.getMatriceAmbientale());

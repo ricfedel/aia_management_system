@@ -3,6 +3,7 @@ package it.grandimolini.aia.dto;
 import it.grandimolini.aia.model.Prescrizione.MatriceAmbientale;
 import it.grandimolini.aia.model.Prescrizione.Priorita;
 import it.grandimolini.aia.model.Prescrizione.StatoPrescrizione;
+import it.grandimolini.aia.model.Prescrizione.TipoAutorizzazione;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -23,6 +24,8 @@ public class CreatePrescrizioneRequest {
     @NotBlank(message = "La descrizione è obbligatoria")
     @Size(max = 1000, message = "La descrizione non può superare 1000 caratteri")
     private String descrizione;
+
+    private TipoAutorizzazione tipoAutorizzazione;
 
     private MatriceAmbientale matriceAmbientale;
 
