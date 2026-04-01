@@ -122,7 +122,7 @@
               <span class="cat-total">
                 Totale: {{ totaleCategoria().get(cat) | number:'1.0-2' }}
                 @if (getVociByCategoria(cat)[0]?.unitaMisura) {
-                  {{ getVociByCategoria(cat)[0].unitaMisura }}
+                  {{ getVociByCategoria(cat)[0]?.unitaMisura }}
                 }
               </span>
               @if (isResponsabileOrAdmin()) {
