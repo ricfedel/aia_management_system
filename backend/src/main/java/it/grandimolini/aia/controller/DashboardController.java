@@ -2,8 +2,10 @@ package it.grandimolini.aia.controller;
 
 import it.grandimolini.aia.dto.ConformitaTrendDTO;
 import it.grandimolini.aia.dto.DashboardStatsDTO;
+import it.grandimolini.aia.dto.KpiAmbientaleDTO;
 import it.grandimolini.aia.dto.ScadenzaImminenteDTO;
 import it.grandimolini.aia.dto.StabilimentoStatsDTO;
+import it.grandimolini.aia.dto.StatoCampionamentoDTO;
 import it.grandimolini.aia.service.DashboardService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -68,5 +70,27 @@ public class DashboardController {
 
         List<ConformitaTrendDTO> trend = dashboardService.getConformitaTrend(mesi);
         return ResponseEntity.ok(trend);
+    }
+
+    /**
+     * KPI ambientali (consumi + rifiuti) per tutti gli stabilimenti accessibili
+     */
+    @GetMapping("/kpi-ambientali")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<KpiAmbientaleDTO>> getKpiAmbientali(
+            @RequestParam(required = false) Integer anno) {
+
+        int annoEffettivo = (anno != null) ? anno : java.time.Year.now().getValue();
+        List<KpiAmbientaleDTO> kpi = dashboardService.getKpiAmbientali(annoEffettivo);
+        return ResponseEntity.ok(kpi);
+    }
+
+    /**
+     * Stato campionamenti per tutti i punti di monitoraggio attivi
+     */
+    @GetMapping("/stato-campionamenti")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<StatoCampionamentoDTO>> getStatoCampionamenti() {
+        return ResponseEntity.ok(dashboardService.getStatoCampionamenti());
     }
 }
