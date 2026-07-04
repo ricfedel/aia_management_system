@@ -7,7 +7,8 @@ import { AuthService } from '../../services/auth.service';
 import { Stabilimento } from '../../models/stabilimento.model';
 import { Prescrizione } from '../../models/prescrizione.model';
 import { DatiAmbientali, StatoConformita } from '../../models/dati-ambientali.model';
-import { Scadenza } from '../../models/scadenza.model';
+import { ScadenzaImminente, KpiAmbientale, StatoCampionamento } from '../../models/dashboard.model';
+import { AltraAutorizzazione } from '../../models/altra-autorizzazione.model';
 import { TranslatePipe } from '../../pipes/translate.pipe';
 import { EnumTranslatePipe } from '../../pipes/enum-translate.pipe';
 import { environment } from '../../../environments/environment';
@@ -21,8 +22,21 @@ import { environment } from '../../../environments/environment';
 })
 export class DashboardComponent implements OnInit {
   stabilimenti: Stabilimento[] = [];
+  altreAutorizzazioniMap: Map<number, AltraAutorizzazione[]> = new Map();
+  kpiAmbientali: KpiAmbientale[] = [];
+  statoCampionamenti: StatoCampionamento[] = [];
+  campionamentiPerStabilimento: Map<string, StatoCampionamento[]> = new Map();
+
+  // Calendario
+  calendarMese: number = new Date().getMonth();
+  calendarAnno: number = new Date().getFullYear();
+  calendarDays: { date: Date; campionamenti: StatoCampionamento[] }[] = [];
+  readonly NOMI_MESI = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
+                        'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  readonly NOMI_GIORNI = ['L','M','M','G','V','S','D'];
+  selectedDay: { date: Date; campionamenti: StatoCampionamento[] } | null = null;
   prescrizioni: Prescrizione[] = [];
-  scadenzeProssime: Scadenza[] = [];
+  scadenzeProssime: ScadenzaImminente[] = [];
   datiNonConformi: DatiAmbientali[] = [];
 
   stats = {
@@ -65,6 +79,37 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Errore nel caricamento stabilimenti:', error)
     });
 
+    this.apiService.getKpiAmbientali().subscribe({
+      next: (data) => { this.kpiAmbientali = data; },
+      error: (error) => console.error('Errore nel caricamento KPI ambientali:', error)
+    });
+
+    this.apiService.getStatoCampionamenti().subscribe({
+      next: (data) => {
+        this.statoCampionamenti = data;
+        this.campionamentiPerStabilimento = new Map();
+        data.forEach(c => {
+          const list = this.campionamentiPerStabilimento.get(c.stabilimentoNome) || [];
+          list.push(c);
+          this.campionamentiPerStabilimento.set(c.stabilimentoNome, list);
+        });
+        this.buildCalendar();
+      },
+      error: (error) => console.error('Errore nel caricamento stato campionamenti:', error)
+    });
+
+    this.apiService.getAltreAutorizzazioni().subscribe({
+      next: (data) => {
+        this.altreAutorizzazioniMap = new Map();
+        data.forEach(a => {
+          const list = this.altreAutorizzazioniMap.get(a.stabilimentoId) || [];
+          list.push(a);
+          this.altreAutorizzazioniMap.set(a.stabilimentoId, list);
+        });
+      },
+      error: (error) => console.error('Errore nel caricamento altre autorizzazioni:', error)
+    });
+
     this.apiService.getPrescrizioni().subscribe({
       next: (data) => {
         this.prescrizioni = data;
@@ -73,7 +118,7 @@ export class DashboardComponent implements OnInit {
       error: (error) => console.error('Errore nel caricamento prescrizioni:', error)
     });
 
-    this.apiService.getScadenzeProssimi30Giorni().subscribe({
+    this.apiService.getScadenzeImminenti(90).subscribe({
       next: (data) => {
         this.scadenzeProssime = data;
         this.stats.scadenzeImminenti = data.length;
@@ -119,6 +164,113 @@ export class DashboardComponent implements OnInit {
       case 'NON_CONFORME': return 'non-conforme';
       default: return '';
     }
+  }
+
+  getRifiutiClass(ok: boolean): string {
+    return ok ? 'semaforo-verde' : 'semaforo-rosso';
+  }
+
+  getCampionamentoClass(colore: string): string {
+    switch (colore) {
+      case 'VERDE': return 'camp-verde';
+      case 'GIALLO': return 'camp-giallo';
+      case 'ROSSO': return 'camp-rosso';
+      default: return '';
+    }
+  }
+
+  getCampionamentiStabilimenti(): string[] {
+    return Array.from(this.campionamentiPerStabilimento.keys());
+  }
+
+  buildCalendar(): void {
+    const anno = this.calendarAnno;
+    const mese = this.calendarMese;
+    const giorniNelMese = new Date(anno, mese + 1, 0).getDate();
+
+    // Mappa data (YYYY-MM-DD) → campionamenti
+    const mappa = new Map<string, StatoCampionamento[]>();
+    this.statoCampionamenti.forEach(c => {
+      if (!c.prossimaScadenza) return;
+      const d = new Date(c.prossimaScadenza);
+      if (d.getFullYear() === anno && d.getMonth() === mese) {
+        const key = c.prossimaScadenza.substring(0, 10);
+        const list = mappa.get(key) || [];
+        list.push(c);
+        mappa.set(key, list);
+      }
+    });
+
+    this.calendarDays = [];
+    for (let g = 1; g <= giorniNelMese; g++) {
+      const date = new Date(anno, mese, g);
+      const key = `${anno}-${String(mese + 1).padStart(2, '0')}-${String(g).padStart(2, '0')}`;
+      this.calendarDays.push({ date, campionamenti: mappa.get(key) || [] });
+    }
+  }
+
+  calendarPrevMese(): void {
+    if (this.calendarMese === 0) {
+      this.calendarMese = 11;
+      this.calendarAnno--;
+    } else {
+      this.calendarMese--;
+    }
+    this.buildCalendar();
+  }
+
+  calendarNextMese(): void {
+    if (this.calendarMese === 11) {
+      this.calendarMese = 0;
+      this.calendarAnno++;
+    } else {
+      this.calendarMese++;
+    }
+    this.buildCalendar();
+  }
+
+  getCalendarOffset(): number[] {
+    // Offset iniziale: lunedì = 0
+    const primoGiorno = new Date(this.calendarAnno, this.calendarMese, 1).getDay();
+    const offset = (primoGiorno + 6) % 7; // converte domenica=0 in lunedì=0
+    return Array(offset).fill(0);
+  }
+
+  selectCalendarDay(day: { date: Date; campionamenti: StatoCampionamento[] }): void {
+    if (day.campionamenti.length === 0) return;
+    if (day.campionamenti.length === 1) {
+      this.navigateToPuntiMonitoraggio(day.campionamenti[0].monitoraggioId);
+      return;
+    }
+    const isSame = this.selectedDay?.date.getTime() === day.date.getTime();
+    this.selectedDay = isSame ? null : day;
+    if (!isSame) {
+      setTimeout(() => {
+        document.querySelector('.cal-detail')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
+    }
+  }
+
+  navigateToPuntiMonitoraggio(monitoraggioId?: number): void {
+    this.router.navigate(['/punti-monitoraggio'], monitoraggioId ? { queryParams: { id: monitoraggioId } } : {});
+  }
+
+  isToday(date: Date): boolean {
+    const oggi = new Date();
+    return date.getDate() === oggi.getDate() &&
+           date.getMonth() === oggi.getMonth() &&
+           date.getFullYear() === oggi.getFullYear();
+  }
+
+  getAltreAutorizzazioni(stabilimentoId?: number): AltraAutorizzazione[] {
+    if (!stabilimentoId) return [];
+    return this.altreAutorizzazioniMap.get(stabilimentoId) || [];
+  }
+
+  getGiorniRimanestiClass(giorni: number): string {
+    if (giorni <= 15) return 'giorni-urgente';
+    if (giorni <= 30) return 'giorni-warning';
+    return 'giorni-ok';
   }
 
   getPrioritaClass(priorita: string): string {

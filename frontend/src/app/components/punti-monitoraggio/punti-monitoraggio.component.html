@@ -81,7 +81,7 @@
 
       <div class="punti-list">
         @for (punto of getPuntiByTipo(tipo); track punto.id) {
-          <div class="punto-card" [class.inactive]="!punto.attivo">
+          <div class="punto-card" [class.inactive]="!punto.attivo" [id]="'punto-' + punto.id">
 
             <!-- CARD HEADER ──────────────────────────────────────────── -->
             <div class="punto-header" (click)="toggleExpand(punto.id!)">

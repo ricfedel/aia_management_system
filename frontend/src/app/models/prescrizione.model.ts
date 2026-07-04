@@ -5,6 +5,7 @@ export interface Prescrizione {
   stabilimentoNome?: string;
   codice: string;
   descrizione: string;
+  tipoAutorizzazione?: TipoAutorizzazione;
   matriceAmbientale: MatriceAmbientale;
   stato: StatoPrescrizione;
   dataEmissione?: string;
@@ -14,6 +15,15 @@ export interface Prescrizione {
   priorita?: Priorita;
   note?: string;
   dataChiusura?: string;
+}
+
+export enum TipoAutorizzazione {
+  AIA = 'AIA',
+  SCARICO_ACQUE = 'SCARICO_ACQUE',
+  BONIFICHE = 'BONIFICHE',
+  EMISSIONI_ATMOSFERA = 'EMISSIONI_ATMOSFERA',
+  RIFIUTI = 'RIFIUTI',
+  ALTRO = 'ALTRO'
 }
 
 export enum MatriceAmbientale {

@@ -4,10 +4,11 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { Stabilimento } from '../models/stabilimento.model';
 import { Prescrizione } from '../models/prescrizione.model';
+import { AltraAutorizzazione } from '../models/altra-autorizzazione.model';
 import { DatiAmbientali } from '../models/dati-ambientali.model';
 import { Scadenza } from '../models/scadenza.model';
 import { Documento, DocumentoSearchParams, DocumentoSearchResult, StatoDocumento } from '../models/documento.model';
-import { DashboardStats, StabilimentoStats, ScadenzaImminente, ConformitaTrend } from '../models/dashboard.model';
+import { DashboardStats, StabilimentoStats, ScadenzaImminente, ConformitaTrend, KpiAmbientale, StatoCampionamento } from '../models/dashboard.model';
 import { User, RegisterRequest } from '../models/user.model';
 import {
   AvviaProcessoRequest, CompletaTaskRequest,
@@ -104,6 +105,27 @@ export class ApiService {
 
   deletePrescrizione(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/prescrizioni/${id}`);
+  }
+
+  // ========== ALTRE AUTORIZZAZIONI ==========
+  getAltreAutorizzazioni(): Observable<AltraAutorizzazione[]> {
+    return this.http.get<AltraAutorizzazione[]>(`${this.apiUrl}/altre-autorizzazioni`);
+  }
+
+  getAltreAutorizzazioniByStabilimento(stabilimentoId: number): Observable<AltraAutorizzazione[]> {
+    return this.http.get<AltraAutorizzazione[]>(`${this.apiUrl}/altre-autorizzazioni/stabilimento/${stabilimentoId}`);
+  }
+
+  saveAltraAutorizzazione(dto: AltraAutorizzazione): Observable<AltraAutorizzazione> {
+    return this.http.post<AltraAutorizzazione>(`${this.apiUrl}/altre-autorizzazioni`, dto);
+  }
+
+  updateAltraAutorizzazione(id: number, dto: AltraAutorizzazione): Observable<AltraAutorizzazione> {
+    return this.http.put<AltraAutorizzazione>(`${this.apiUrl}/altre-autorizzazioni/${id}`, dto);
+  }
+
+  deleteAltraAutorizzazione(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/altre-autorizzazioni/${id}`);
   }
 
   // ========== SCADENZE ==========
@@ -337,6 +359,16 @@ export class ApiService {
     return this.http.get<ConformitaTrend[]>(`${this.apiUrl}/dashboard/conformita-trend`, {
       params: { mesi: mesi.toString() }
     });
+  }
+
+  getKpiAmbientali(anno?: number): Observable<KpiAmbientale[]> {
+    const params: any = {};
+    if (anno) params['anno'] = anno.toString();
+    return this.http.get<KpiAmbientale[]>(`${this.apiUrl}/dashboard/kpi-ambientali`, { params });
+  }
+
+  getStatoCampionamenti(): Observable<StatoCampionamento[]> {
+    return this.http.get<StatoCampionamento[]>(`${this.apiUrl}/dashboard/stato-campionamenti`);
   }
 
   // ========== EXPORT ==========

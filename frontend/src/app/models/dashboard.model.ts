@@ -30,8 +30,46 @@ export interface ScadenzaImminente {
   stabilimentoNome: string;
   dataScadenza: string;
   giorniRimanenti: number;
+  tipoScadenza: string;
   priorita: string;
   stato: string;
+  responsabile?: string;
+}
+
+export interface StatoCampionamento {
+  monitoraggioId: number;
+  codice: string;
+  descrizione: string;
+  tipoMonitoraggio: string;
+  frequenza: string;
+  stabilimentoId: number;
+  stabilimentoNome: string;
+  dataUltimoCampionamento?: string;
+  numeroUltimoRapporto?: string;
+  conformitaUltimo?: string;
+  prossimaScadenza?: string;
+  giorniAllaScadenza?: number;
+  statoColore: 'VERDE' | 'GIALLO' | 'ROSSO';
+  statoDescrizione: string;
+}
+
+export interface KpiAmbientale {
+  stabilimentoId: number;
+  stabilimentoNome: string;
+  annoRiferimento: number;
+  consumoIdrico: number;
+  consumoEletrico: number;
+  consumoGas: number;
+  produzioneTotale: number;
+  consumoIdricoSpecifico: number;
+  consumoEletricoSpecifico: number;
+  consumoGasSpecifico: number;
+  rifiutiTotali: number;
+  rifiutiPericolosi: number;
+  limiteRifiutiTotali: number;
+  limiteRifiutiPericolosi: number;
+  rifiutiTotaliOk: boolean;
+  rifiutiPericolosiOk: boolean;
 }
 
 export interface ConformitaTrend {

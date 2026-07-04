@@ -23,5 +23,6 @@ COPY --from=frontend-build /app/frontend/dist/frontend_perform/browser /usr/shar
 
 EXPOSE 80 443
 
+# 127.0.0.1 esplicito: "localhost" risolve prima su ::1 (IPv6), dove nginx non ascolta
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD wget -qO- http://localhost/nginx-health || exit 1
+    CMD wget -qO- http://127.0.0.1/nginx-health || exit 1

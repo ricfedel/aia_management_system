@@ -123,7 +123,9 @@ services:
     networks:
       - aia-internal
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost/nginx-health || exit 1"]
+      # 127.0.0.1 esplicito: "localhost" nel container risolve prima su ::1 (IPv6),
+      # dove nginx non ascolta, e il check fallirebbe sempre
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/nginx-health || exit 1"]
       interval: 30s
       timeout: 5s
       retries: 3

@@ -2,6 +2,7 @@ import { Component, inject, signal, computed, OnInit, DestroyRef, effect } from 
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 import { AuthService } from '../../services/auth.service';
 import {
@@ -27,9 +28,10 @@ interface ParametroForm extends Partial<ParametroMonitoraggio> {}
 })
 export class PuntiMonitoraggioComponent implements OnInit {
 
-  private api       = inject(ApiService);
-  private auth      = inject(AuthService);
+  private api        = inject(ApiService);
+  private auth       = inject(AuthService);
   private destroyRef = inject(DestroyRef);
+  private route      = inject(ActivatedRoute);
 
   // ── dati ──────────────────────────────────────────────────────────────
   punti         = signal<Monitoraggio[]>([]);
@@ -104,8 +106,9 @@ export class PuntiMonitoraggioComponent implements OnInit {
   // ── lifecycle ─────────────────────────────────────────────────────────
   ngOnInit() {
     this.loadStabilimenti();
-    this.loadPunti();
     this.loadAnagraficaCamini();
+    const targetId = this.route.snapshot.queryParamMap.get('id');
+    this.loadPunti(targetId ? +targetId : null);
   }
 
   loadAnagraficaCamini() {
@@ -114,13 +117,22 @@ export class PuntiMonitoraggioComponent implements OnInit {
     });
   }
 
-  loadPunti() {
+  loadPunti(scrollToId: number | null = null) {
     this.loading.set(true);
     this.errorMsg.set(null);
     this.api.getPuntiMonitoraggio()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: data => { this.punti.set(data); this.loading.set(false); },
+        next: data => {
+          this.punti.set(data);
+          this.loading.set(false);
+          if (scrollToId) {
+            this.expandedId.set(scrollToId);
+            setTimeout(() => {
+              document.getElementById('punto-' + scrollToId)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 100);
+          }
+        },
         error: () => { this.errorMsg.set('Errore nel caricamento dei punti di monitoraggio'); this.loading.set(false); }
       });
   }

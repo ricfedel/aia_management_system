@@ -26,3 +26,10 @@ backend/uploads/
 .DS_Store
 Thumbs.db
 EOF
+
+# AppleDouble (exFAT/macOS)
+._*
+**/._*
+
+# Claude Code worktrees
+.claude/worktrees/
