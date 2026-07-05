@@ -201,3 +201,30 @@ Nota a margine rilevata durante la verifica: il container `aia-nginx` risultava 
 ## 13. Costi di esercizio (indicazioni dal modulo sorgente)
 
 Il costo token è concentrato ~90% nelle risposte dell'agente; embedding, grafo, retrieval, tool e OCR sono a zero token (locali). Il routing per complessità (Haiku/Sonnet/Opus) e il prompt caching riducono il costo medio per domanda. Budget giornaliero configurabile (`daily-token-budget` → HTTP 429 a superamento). Riferimento: `performplus-esg/backend/ai-module/docs/COSTI.md`.
+
+### 13.1 Confronto costi: API Anthropic vs Ollama su VM dedicata (verificato 05/07/2026)
+
+Il modulo è multi-provider: il passaggio a Ollama è solo configurazione (`ai.llm.provider=openai` + `ai.openai.base-url`). Gli embedding restano locali (ONNX) in entrambi gli scenari; il confronto riguarda solo l'LLM di chat/agente.
+
+**Scenario A — API Anthropic** (listini luglio 2026: Haiku 4.5 1$/5$ per Mtoken in/out, Sonnet 3$/15$, Opus 4.8 5$/25$). Domanda RAG tipica ~4K token input / ~500 output:
+
+| Fascia | Costo per domanda |
+|---|---|
+| Haiku (semplici, ingest) | ~0,007 $ |
+| Sonnet (standard) | ~0,02 $ |
+| Opus (complesse) | ~0,03–0,05 $ |
+
+Chat agentiche multi-round: 2-4× una domanda singola. Con prompt caching e routing attivi, **stima per la demo (200–500 domande/mese): 3–10 €/mese**; uso intenso (1.000 domande + agente): < 30 €/mese. Tetto rigido garantito dal guardrail `daily-token-budget`. Ingest documenti (18,5 MB attuali): centesimi, una tantum.
+
+**Scenario B — Ollama su VM separata** (prezzi Hetzner post-adeguamento giugno 2026):
+
+| Opzione | Specifiche | Costo | Cosa ci gira |
+|---|---|---|---|
+| CAX31 | 8 vCPU ARM / 16 GB | ~16 €/mese (+0,50 € IPv4) | 7-8B q4 a ~5-10 token/s — usabile ma lento |
+| CAX41 | 16 vCPU ARM / 32 GB | ~31,50 €/mese | 7-8B più fluido, o 14B q4 |
+| GEX44 (dedicato GPU, RTX 4000 Ada 20 GB) | — | 184 €/mese + 79 € setup | 7-14B veloci, latenza da prodotto |
+| GEX130 (dedicato GPU, RTX 6000 Ada 48 GB) | — | 838 €/mese | 70B quantizzato, qualità paragonabile alle API |
+
+Interventi necessari nello scenario B: provisioning VM nello stesso progetto Hetzner; install Ollama + pull modello 7-8B quantizzato (~5 GB); **rete privata Hetzner Cloud** (gratuita) tra VPS e VM — Ollama non ha autenticazione, la porta 11434 non va mai esposta; config in `/opt/aia/.env` (`ai.llm.provider=openai`, `base-url` sull'IP privato, prompt caching off, routing a fascia unica); validazione del function-calling, che sui 7-8B è inaffidabile (a rischio grafici/report/forecast della chat agentica) e del RAG grounded in italiano.
+
+**Conclusione:** alla scala della demo le API vincono nettamente — 3–10 €/mese contro i 16 €/mese della VM più economica, con qualità superiore (function-calling) e latenza migliore; pareggiare la qualità on-prem richiede il server GPU da 184–838 €/mese. L'unica ragione valida per Ollama non è il costo ma la sovranità del dato (rischio §11.8): in quel caso, pilota su CAX31 accettando i limiti di qualità, con rientro alle API possibile cambiando due variabili d'ambiente. A regime i due scenari possono convivere (provider configurabile per installazione).
